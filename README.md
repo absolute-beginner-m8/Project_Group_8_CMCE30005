@@ -3,7 +3,7 @@
 
 **Subject:** CMCE30005 Business Analytics Challenge, Semester 2 2026
 **University:** University of Melbourne
-**Team Members:** [Sabrina Nguyen], [Name 2], [Name 3], [Name 4]
+**Team Members:** [Sabrina Nguyen], [Thomas Haikal], [Rutvi Tolani], [Name 4]
 
 ---
 
@@ -33,4 +33,4 @@ what question you are answering, why it matters, and what methods you plan to us
 
 ---
 
-*Last updated: [12:38pm 13/08/2026]*
+*Last updated: [12:52pm 13/08/2026]*
