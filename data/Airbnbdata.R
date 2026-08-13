@@ -12,3 +12,5 @@ library(scales)
 listing_airbnb <- read.csv("AirBnb_files/listings_airbnb.csv")
 calender_airbnb <- read.csv("AirBnb_files/calendar_airbnb.csv")
 reviews_airbnb <- read.csv("AirBnb_files/reviews_airbnb.csv")
+
+
