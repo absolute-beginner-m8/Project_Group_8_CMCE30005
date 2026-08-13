@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Project_Group_8_CMCE30005
 Project for CMCE30005
 
@@ -6,7 +7,15 @@ Project for CMCE30005
 
 **Subject:** CMCE30005 Business Analytics Challenge, Semester 2 2026
 **University:** University of Melbourne
-**Team Members:** [Name 1], [Name 2], [Name 3], [Name 4]
+**Team Members:** [Sabrina Nguyen], [Thomas Haikal], [Rutvi tolani], [Name 4]
+=======
+# CMCE30005 Business Analytics Challenge
+## Projcet_Group_8_CMCE30005 
+
+**Subject:** CMCE30005 Business Analytics Challenge, Semester 2 2026
+**University:** University of Melbourne
+**Team Members:** [Sabrina Nguyen], [Thomas Haikal], (Rutvi tolani), [Name 4]
+>>>>>>> d2b5da9199711b1c86a334e9c98d6fb6ceb4c51a
 
 ---
 
@@ -35,5 +44,5 @@ what question you are answering, why it matters, and what methods you plan to us
 > Download from: [insert download URL or instructions]
 
 ---
-
 *Last updated: [13/08/2026]*
+
