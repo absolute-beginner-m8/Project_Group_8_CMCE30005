@@ -25,9 +25,11 @@ Project for CMCE30005
 
 ## Business Problem
 
+#Business Problem & Project Objectives Our client operates multiple Queensland dealerships and is expanding into Melbourne. They need to decide how to split investment between new-vehicle and used-vehicle stock, and which makes/models to prioritise in each, to maximise inventory turnover and avoid overstocking slow-moving segments in an unfamiliar market.
 
+
+---
 
 ## Dataset
-
 
 
