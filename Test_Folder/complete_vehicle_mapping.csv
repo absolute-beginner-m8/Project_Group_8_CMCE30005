@@ -1,0 +1,870 @@
+CD_MAKE_VEH,CD_MAKE_VEH_CLEAN,Category
+A B C ,ABC,Commercial
+A C  ,AC Cars,Car
+A CAT ,Acadian,Car
+A G O ,AGO,Motorcycle
+A J S ,AJS,Motorcycle
+A LINC,Lincoln,Car
+ABARTH,Abarth,Car
+ACE   ,Ace,Other
+ACHTNG,Achtung,Motorcycle
+ACM   ,ACM,Other
+ACTIVE,Active,Motorcycle
+ADRIA ,Adria,Caravan
+AEC   ,AEC,Commercial
+AGCO  ,AGCO,Agricultural
+AGPRO ,AgPro,Agricultural
+AGRALE,Agrale,Commercial
+AGRBSS,Agri Boss,Agricultural
+AGRIA ,Agria,Agricultural
+AGRICT,Agricar,Agricultural
+AGRIFC,Agri Farm Care,Agricultural
+AGRIFL,Agri Fleet,Agricultural
+AGRISC,Agri Scout,Agricultural
+AGRSON,Agrisan,Agricultural
+AGTOR ,Agrator,Agricultural
+AGUSTA,MV Agusta,Motorcycle
+AION  ,Aion,Car
+AIRMAN,Airman,Other
+AJP   ,AJP,Motorcycle
+ALBACH,Albach,Other
+ALFA R,Alfa Romeo,Car
+ALLEN ,Allen,Other
+ALLIS ,Allis Chalmers,Agricultural
+ALPINA,Alpina,Car
+ALVIS ,Alvis,Car
+AM GEN,American General,Car
+AMB R ,Amber,Motorcycle
+AMBASS,Ambassador,Car
+AMERIH,American IH,Commercial
+AMMANN,Ammann,Other
+AMRCAN,American,Car
+ANKAI ,Ankai,Commercial
+ANTONI,Antonini,Motorcycle
+API   ,API,Motorcycle
+APOLLO,Apollo,Motorcycle
+APRILI,Aprilia,Motorcycle
+ARB   ,ARB,Other
+ARBTOY,ARB Toyota,Other
+ARCC  ,Arcc,Other
+ARCFOX,Arcfox,Car
+ARCTIC,Arctic,Other
+ARGO  ,Argo,Commercial
+ARIEL ,Ariel,Motorcycle
+ARROW ,Arrow,Other
+ASIA  ,Asia,Commercial
+ASTON ,Aston Martin,Car
+ASV   ,ASV,Other
+ATK   ,ATK,Motorcycle
+ATKINS,Atkins,Commercial
+ATLAS ,Atlas,Commercial
+ATOMIC,Atomic,Motorcycle
+ATOMIK,Atomik,Motorcycle
+AUBURN,Auburn,Car
+AUDI  ,Audi,Car
+AUSA  ,Ausa,Commercial
+AUSTIN,Austin,Car
+AUSTRK,Austriak,Other
+AUSTRL,Austral,Other
+AUTOPI,AutoPi,Motorcycle
+AUTRMO,Austrian Motor,Car
+AVAN  ,Avan,Caravan
+AVANT ,Avant,Car
+AVATR ,Avatar,Car
+AVIDA ,Avida,Caravan
+AXTRA ,Axtrac,Other
+AYRAME,Ayraveh,Motorcycle
+B C I ,BCI,Commercial
+B H B ,BHB,Other
+B HOSS,Boss Hoss,Motorcycle
+B KNOX,B Knox,Other
+B M B ,BMW,Car
+B M C ,BMC,Car
+B M W ,BMW,Car
+B S A ,BSA,Motorcycle
+B S E ,BSE,Motorcycle
+B Y D ,BYD,Car
+BADBDY,Bad Boy,Motorcycle
+BAJAJ ,Bajaj,Motorcycle
+BAOLI ,Baoli,Motorcycle
+BAOTIA,Baotian,Motorcycle
+BARONI,Baroni,Other
+BAUMAN,Bauman,Other
+BED   ,Bed,Commercial
+BED IS,Bedis,Commercial
+BELARS,Belarus,Agricultural
+BELL  ,Bell,Other
+BENDA ,Benda,Motorcycle
+BENELL,Benelli,Motorcycle
+BENFRD,Benford,Other
+BENT  ,Bentley,Car
+BENZNA,Benzina,Car
+BERK  ,Berkeley,Car
+BETA  ,Beta,Motorcycle
+BIGDOG,Big Dog,Motorcycle
+BIGJOE,Big Joe,Other
+BITELI,Bitelli,Other
+BOBCAT,Bobcat,Other
+BOLLIN,Bollin,Other
+BOLWEL,Bolwell,Car
+BOMAG ,Bomag,Other
+BOAMQ ,Bomaq,Other
+BOMBDR,Bombardier,Motorcycle
+BON   ,Bon,Other
+BONLCK,Bon Lock,Other
+BONTRI,Bontri,Other
+BOOM T,Boom Truck,Commercial
+BORTAN,Bortan,Other
+BORUM ,Borum,Other
+BOSS  ,Boss,Other
+BRAAP ,Braap,Motorcycle
+BRANSN,Branson,Agricultural
+BRAUD ,Braud,Agricultural
+BRISTL,Bristol,Car
+BRP   ,BRP,Motorcycle
+BUCHER,Bucher,Other
+BUELL ,Buell,Motorcycle
+BUG   ,Bug,Car
+BUGAT ,Bugatti,Car
+BUICK ,Buick,Car
+BULLET,Bullet,Motorcycle
+BULTAC,Bultaco,Motorcycle
+BUS TO,Bus Toyota,Commercial
+BUSTEC,Bus Tech,Commercial
+C BILT,C Built,Commercial
+C CADT,C Cade,Commercial
+C FIRE,C Fire,Commercial
+C MILL,C Mill,Commercial
+CAD   ,Cadillac,Car
+CAGIVA,Cagiva,Motorcycle
+CAMTRI,Cam Tri,Motorcycle
+CAN AM,Can Am,Motorcycle
+CANAM ,Canam,Motorcycle
+CARLTN,Carlton,Car
+CARMAN,Carman,Commercial
+CARRAR,Carrara,Car
+CASE  ,Case,Agricultural
+CATHAM,Catham,Car
+CATPLR,Caterpillar,Other
+CFMOTO,CFMOTO,Motorcycle
+CHALL ,Challenger,Car
+CHAMB ,Chamberlain,Other
+CHAMOM,Chamois,Other
+CHAMP ,Champ,Motorcycle
+CHANGA,Changan,Car
+CHANGJ,Changjiang,Motorcycle
+CHERY ,Chery,Car
+CHEV  ,Chevrolet,Car
+CHIKUS,Chikusa,Motorcycle
+CHLNGR,Challenger,Car
+CHON C,Chongqing,Commercial
+CHONQG,Chongqing,Commercial
+CHRYS ,Chrysler,Car
+CINIWM,Ciniwm,Motorcycle
+CITRN ,Citroën,Car
+CLAAS ,Claas,Agricultural
+CLARK ,Clark,Commercial
+CLASS ,Classica,Car
+CLEVE ,Cleveland,Motorcycle
+CLUB C,Club Car,Other
+CLVLND,Cleveland,Car
+CMBLFT,Cambridge Lift,Commercial
+COACHM,Coachmen,Caravan
+COMAC ,Comac,Other
+COMMER,Commercial,Commercial
+CONQ  ,Conqueror,Caravan
+CONSTR,Constructor,Commercial
+CONVAR,Convar,Commercial
+CROPLN,Croplands,Agricultural
+CRO S F,Cross Fit,Other
+CROSS ,Crosser,Car
+CROWN ,Crown,Other
+CUMMIN,Cummins,Commercial
+CUPRA ,Cupra,Car
+CUSHM ,Cushman,Other
+CUSTOM,Custom,Other
+D BRWN,Dunn Brown,Commercial
+D EAGL,Diamond Eagle,Caravan
+D FAHR,Deutz Fahr,Agricultural
+DAEDNN,Daedong,Agricultural
+DAELIM,Daelim,Motorcycle
+DAEWOO,Daewoo,Car
+DAF   ,DAF,Commercial
+DAIHAT,Daihatsu,Car
+DAIM  ,Daimler,Car
+DATSUN,Datsun,Car
+DEEPAL,Deep Al,Motorcycle
+DEEPWA,Deepwater,Commercial
+DELORN,Delorn,Motorcycle
+DEMAG ,Demag,Other
+DENING,Denning,Other
+DENNIS,Dennis,Commercial
+DENZA ,Denza,Car
+DERBI ,Derbi,Motorcycle
+DESOTO,DeSoto,Car
+DETOM ,Detroit Motor,Commercial
+DEUTZ ,Deutz,Agricultural
+DEVELO,Develop,Other
+DEWULF,De Wulf,Agricultural
+DIA R ,Diamond Rio,Caravan
+DIAMOM,Diamond,Caravan
+DIBLAS,Diblas,Motorcycle
+DIECI ,Dieci,Commercial
+DINGLE,Dingle,Other
+DINGO ,Dingo,Motorcycle
+DITCH ,Ditch Witch,Other
+DITCHW,Ditch Witch,Other
+DMW IN,DMW Indria,Car
+DMW NI,DMW Nissl,Car
+DOBUTE,Dobute,Motorcycle
+DODGE ,Dodge,Car
+DOGEBO,Doge Box,Other
+DONGFE,Dongfeng,Commercial
+DONKEY,Donkey,Other
+DOOSAN,Doosan,Other
+DOUGLAS,Douglas,Motorcycle
+DUCATI,Ducati,Motorcycle
+DYNAPC,Dynap,Commercial
+E CAR ,E Car,Car
+E VOLV,E Volvo,Car
+E WIND,E Wind,Car
+EBR   ,Erik Buell Racing,Motorcycle
+EBUSCO,Ebusco,Commercial
+EGLWNG,Eagle Wing,Caravan
+EGREEN,E Green,Car
+EL DVE,El Dive,Motorcycle
+EL M  ,ELM,Other
+ELFIN ,Elfin,Car
+ELSTAR,Elstar,Other
+EMC   ,EMC,Other
+EMUFIA,Emufia,Car
+ENERGC,Energica,Motorcycle
+ENFLD ,Enfield,Motorcycle
+ENFLY ,Enfly,Motorcycle
+ENFORC,Enforce,Other
+ENTI  ,Enti,Car
+EP    ,EP,Motorcycle
+ERIDER,E-Rider,Car
+ETON  ,Eton,Motorcycle
+EUNOS ,Eunos,Car
+EURISE,Eurise,Car
+EVERUN,Everun,Commercial
+EZGO  ,EZGO,Other
+F BARN,F Barns,Commercial
+F LINE,F Line,Commercial
+F TRAC,F Trac,Commercial
+FACEL ,Facel,Car
+FAHR  ,Fahr,Agricultural
+FANTIC,Fantic,Motorcycle
+FARESI,Faresi,Motorcycle
+FARGO ,Fargo,Commercial
+FARIZZ,Farizz,Motorcycle
+FARM  ,Farm,Agricultural
+FAW   ,FAW,Car
+FENDT ,Fendt,Agricultural
+FERG  ,Fergus,Agricultural
+FERMEC,Fermec,Agricultural
+FERRAR,Ferrari,Car
+FERRIS,Ferris,Other
+FIAT  ,Fiat,Car
+FIMAP ,Fimap,Other
+FIORI ,Fiori,Commercial
+FISCHR,Fischer,Other
+FL REN,Flensburg,Commercial
+FL TOY,Flensburg Toyota,Commercial
+FL VLK,Flensburg Volkswagen,Commercial
+FLFORD,Flensburg Ford,Commercial
+FONZI ,Fonzi,Motorcycle
+FORCE ,Force,Commercial
+FORD  ,Ford,Car
+FORDSN,Fordson,Agricultural
+FOREST,Forest,Other
+FOTON ,Foton,Commercial
+FOXCO ,Foxco,Motorcycle
+FRANNA,Franna,Commercial
+FRAZER,Frazer,Car
+FREGHT,Freighter,Commercial
+FRMLN ,Farmline,Agricultural
+FSM   ,FSM,Motorcycle
+FTN   ,Fotun,Car
+FUERZZ,Fuerzza,Motorcycle
+FURUKA,Furukawa,Commercial
+FUSO  ,Fuso,Commercial
+FYM   ,FYM,Motorcycle
+G DRGN,G Dragon,Car
+G FERR,G Ferrari,Car
+G M C ,GMC,Commercial
+G WALL,G Waller,Other
+G WELL,G Wells,Commercial
+GAC   ,GAC,Car
+GAIUS ,Gaius,Car
+GASGAS,Gas Gas,Motorcycle
+GEELY ,Geely,Car
+GEHL  ,Gehl,Other
+GENIE ,Genie,Other
+GENSI ,Genesis,Car
+GILBRN,Gilbern,Car
+GILERA,Gilera,Motorcycle
+GLDACR,Goldacre,Car
+GLDACS,Goldacres,Agricultural
+GLEANR,Gleaner,Agricultural
+GLENTR,Glen Trail,Caravan
+GMC   ,GMC,Commercial
+GMSV  ,GMS,Commercial
+GMX   ,GMX,Motorcycle
+GOGGO ,Gogo,Other
+GOLDAC,Gold Acres,Agricultural
+GOLDON,Golden,Car
+GOLFI ,Golf Line,Car
+GRACO ,Graco,Other
+GRAD  ,Grad,Commercial
+GREENS,Greens,Agricultural
+GREGOI,Gregoire,Commercial
+GRILLO,Grillo,Agricultural
+GRIMME,Grimme,Agricultural
+GROVE ,Grove,Other
+GTM   ,GTM,Car
+GWM   ,GWM,Car
+GWORKS,G Works,Commercial
+H DAV ,Harley-Davidson,Motorcycle
+H MADE,H Made,Other
+H R D ,Harley-Davidson,Motorcycle
+HAKO  ,Hako,Other
+HAMM  ,Hamm,Other
+HANDYM,Handy Mate,Other
+HANGCH,Hangzhou,Car
+HARDI ,Hardi,Agricultural
+HARTNT,Hartford,Caravan
+HAULOT,Haulot,Commercial
+HAVAL ,Haval,Car
+HDRIVE,HD Rive,Car
+HELI  ,Heli,Commercial
+HENLEY,Henley,Caravan
+HERCHE,Hercher,Other
+HERCLS,Hercules,Motorcycle
+HERROD,Herrod,Other
+HIDROM,Hidrom,Other
+HIGER ,Higer,Commercial
+HILL  ,Hill,Agricultural
+HINO  ,Hino,Commercial
+HISUN ,Hisun,Motorcycle
+HITACH,Hitachi,Commercial
+HOFMAN,Hofman,Other
+HOLAND,Holland,Commercial
+HOLDEN,Holden,Car
+HONDA ,Honda,Car
+HORIZN,Horizon,Caravan
+HORWIN,Horwin,Motorcycle
+HOUGH ,Hough,Other
+HOUSAH,House,Caravan
+HRFTRD,Hartford,Car
+HSQVRN,Husqvarna,Motorcycle
+HUBTEX,Hubtex,Other
+HUDSON,Hudson,Car
+HUMBER,Humber,Car
+HUMMA ,Hummer,Car
+HUMM  ,Hummer,Car
+HUNTER,Hunter,Caravan
+HUP   ,Hupp,Car
+HUSA  ,Husa,Motorcycle
+HUSBR ,Husberg,Motorcycle
+HUSQVA,Husqvarna,Motorcycle
+HUST  ,Husitski,Motorcycle
+HYCO  ,Hyco,Other
+HYDREM,Hydrem,Commercial
+HYDROM,Hydromec,Commercial
+HYNDAI,Hyundai,Car
+HYOSUN,Hyosung,Motorcycle
+HYSTER,Hyster,Other
+HYZON ,Hyzon,Commercial
+I CON ,Icon,Car
+I H I ,IHI,Commercial
+I RAND,I Rand,Other
+IKONIC,Ikonic,Car
+IM    ,IM,Car
+INDCON,Indian,Motorcycle
+INDIAN,Indian,Motorcycle
+INDUST,Industr,Other
+INEOS ,INEOS,Car
+INFINI,Infiniti,Car
+INTERN,International,Commercial
+IRSBUS,Iris Bus,Commercial
+IS FRA,Is Frame,Commercial
+ISAL  ,Isal,Commercial
+ISEKI ,Iseki,Agricultural
+ISUZU ,Isuzu,Commercial
+ITAL  ,Itala,Car
+ITALA ,Itala,Car
+ITASCA,Itasca,Caravan
+IVECO ,Iveco,Commercial
+J C B ,JCB,Other
+J DEER,John Deere,Agricultural
+J L G ,JLG,Other
+J T G ,JTG,Motorcycle
+JAC   ,JAC,Car
+JACOB ,Jacob,Other
+JAECOO,Jaecoo,Car
+JAGUAR,Jaguar,Car
+JAMES ,James,Motorcycle
+JARRAF,Jarraf,Other
+JAWA  ,Jawa,Motorcycle
+JAYCOM,Jayco,Caravan
+JAYCOR,Jayco,Caravan
+JAYCOV,Jayco,Caravan
+JBA   ,JBA,Car
+JEEP  ,Jeep,Car
+JENSEN,Jensen,Car
+JIAJUE,Jiajue,Motorcycle
+JIANSN,Jiangshan,Car
+JMC   ,JMC,Commercial
+JOHNST,Johnston,Commercial
+JOYLNG,Joylong,Commercial
+JUNGH ,Jungherich,Other
+K LONG,K Long,Commercial
+K T M ,KTM,Motorcycle
+KAERCH,Kaercher,Other
+KALMAR,Kalmar,Other
+KANDI ,Kandi,Car
+KARCH ,Karcher,Other
+KASBHR,Kasbahar,Motorcycle
+KATO  ,Kato,Other
+KAWASA,Kawasaki,Motorcycle
+KAYO  ,Kayo,Motorcycle
+KAZUMA,Kazuma,Motorcycle
+KEBELC,Kebelco,Other
+KENWTH,Kenworth,Commercial
+KGM   ,KGM,Car
+KIA   ,Kia,Car
+KINLON,Kinlon,Motorcycle
+KIOTI ,Kioti,Agricultural
+KOBELC,Kobelco,Other
+KOENIG,Koenig,Car
+KOLTGE,Koltge,Other
+KOMAT ,Komatsu,Other
+KONETN,Konetin,Other
+KOSHIN,Koshin,Other
+KRAMER,Kramer,Other
+KRONE ,Krone,Agricultural
+KRUPP ,Krupp,Other
+KTM   ,KTM,Motorcycle
+KUBOTA,Kubota,Agricultural
+KYBRZ ,Kyburz,Car
+KYMCO ,Kymco,Motorcycle
+L BOSS,L Boss,Motorcycle
+L HONG,L Hong,Car
+L ROV ,Land Rover,Car
+L TAXI,L Taxi,Car
+LACRE ,Lacre,Car
+LADA  ,Lada,Car
+LAMB  ,Lamborghini,Car
+LAMB G,Lamborghini,Car
+LAMBR ,Lambretta,Motorcycle
+LANBOS,Lanbo,Motorcycle
+LANCER,Lancer,Car
+LANCIA,Lancia,Car
+LANDIN,Landin,Motorcycle
+LANRON,Lanron,Car
+LANS  ,Lansa,Car
+LANZ  ,Lanz,Agricultural
+LAROO ,Laroo,Motorcycle
+LAVERD,Laverdoc,Commercial
+LDV   ,LDV,Commercial
+LEADER,Leader,Commercial
+LEAPM ,Leapmotor,Car
+LEI   ,Lei,Motorcycle
+LEKI  ,Leki,Other
+LEXUS ,Lexus,Car
+LEY   ,Ley,Motorcycle
+LGMA  ,LGMA,Commercial
+LIEBHR,Liebherr,Other
+LIFAN ,Lifan,Motorcycle
+LIFTSM,Liftsmith,Other
+LINCOL,Lincoln,Car
+LINDE ,Linde,Other
+LINETR,Line Trailer,Commercial
+LINHAI,Linhai,Motorcycle
+LINMAC,Linmac,Other
+LIUGNG,Liugang,Commercial
+LIUGON,Liugong,Other
+LML   ,LML,Motorcycle
+LOADMC,Load Mate,Commercial
+LONCIN,Loncin,Motorcycle
+LONGJI,Longji,Motorcycle
+LONGRI,Longri,Motorcycle
+LOTUS ,Lotus,Car
+LOVLLS,Lovall,Motorcycle
+LOVOL ,Lovol,Agricultural
+LSFORD,LS Ford,Commercial
+LUIGON,Luigi,Motorcycle
+M A N ,MAN,Commercial
+M B   ,Mercedes-Benz,Car
+M C A ,MCA,Commercial
+M G   ,MG,Car
+M GUZZ,Moto Guzzi,Motorcycle
+M Z   ,Mazda,Car
+M2R   ,M2R,Motorcycle
+MACDON,MacDon,Agricultural
+MACK  ,Mack,Commercial
+MACRO ,Macro,Other
+MAGNI ,Magni,Motorcycle
+MAHIND,Mahindra,Agricultural
+MAICO ,Maico,Motorcycle
+MAIT  ,Mait,Motorcycle
+MAL M ,Mal M,Other
+MAMMUT,Mammut,Other
+MAMOTH,Mammoth,Other
+MANITO,Manitou,Commercial
+MARKS4,Marks 4,Motorcycle
+MARSTA,Marstall,Other
+MASER ,Maserati,Car
+MASS F,Mass Ferg,Agricultural
+MAST  ,Mast,Other
+MATCH ,Match,Car
+MATHE ,Mathew,Commercial
+MAX   ,Maxus,Commercial
+MAXUS ,Maxus,Commercial
+MAYBA ,Maybach,Car
+MAZDA ,Mazda,Car
+MC DNG,MC Ding,Motorcycle
+MC HDR,MC Header,Commercial
+MC INT,MC Interact,Motorcycle
+MC LRN,MC Lauren,Motorcycle
+MCCO  ,Maccobee,Other
+MCOAC ,Maccobee Coach,Caravan
+MDT   ,MDT,Other
+MEANGN,Meangon,Other
+MECAL ,Mecal,Motorcycle
+MEGELL,Megelle,Motorcycle
+MEIDUO,Meiduo,Car
+MEITAN,Meitan,Motorcycle
+MENZI ,Menzi Muck,Other
+MERC B,Mercedes-Benz,Car
+MERCRY,Mercury,Car
+MERLIN,Merlin,Caravan
+MERLO ,Merlo,Commercial
+MEYERS,Meyers,Other
+MGREEN,Mgreen,Motorcycle
+MIDLAD,Midland,Commercial
+MILLER,Miller,Other
+MINERV,Minerva,Car
+MINI  ,Mini,Car
+MITSUB,Mitsubishi,Car
+MOBIFT,Mobilefort,Commercial
+MOFFAT,Moffat,Other
+MOFFET,Moffet,Other
+MONTES,Montes,Commercial
+MOORE ,Moore,Other
+MORGAN,Morgan,Car
+MORINI,Morini,Motorcycle
+MORISN,Morison,Commercial
+MORRIS,Morris,Car
+MOTOB ,Motobike,Motorcycle
+MOTOV ,Motovehi,Motorcycle
+MOTOVE,Motovehi,Motorcycle
+MOTOX ,Motox,Motorcycle
+MOUNTA,Mountaina,Motorcycle
+MRL   ,MRL,Other
+MULONE,Mulone,Motorcycle
+MULTIH,Multi Horse,Commercial
+MULTPC,Multi Pick,Commercial
+MUSTNG,Mustang,Car
+MUTT  ,Mutt,Motorcycle
+MV AGU,MV Agusta,Motorcycle
+MV AUG,MV Agusta,Motorcycle
+N HOLL,New Holland,Agricultural
+NAIAD ,Naiad,Caravan
+NICHIY,Nichiyou,Motorcycle
+NIO   ,NIO,Car
+NISSAN,Nissan,Car
+NISUD ,Nissan Diesel,Commercial
+NORAM ,Noram,Motorcycle
+NORTON,Norton,Motorcycle
+NTE   ,NTE,Motorcycle
+NUFF  ,Nuff,Motorcycle
+O M C ,OMC,Motorcycle
+ODES  ,Odes,Motorcycle
+OKA   ,Oka,Car
+OLDS  ,Oldsmobile,Car
+OMEGA ,Omega,Car
+OMODA ,Omoda,Car
+OPEL  ,Opel,Car
+OPTARE,Optare,Commercial
+OTAWA ,Ottawa,Commercial
+OTTAWA,Ottawa,Commercial
+OZ TRI,OZ Tri,Motorcycle
+OZDEMR,Ozdemir,Other
+PACIF ,Pacific,Caravan
+PACK  ,Pack,Agricultural
+PAGANI,Pagani,Car
+PAGSTA,Page Staley,Agricultural
+PANTER,Panter,Commercial
+PANTHR,Panther,Car
+PARK  ,Park,Other
+PASO  ,Paso,Motorcycle
+PEDDER,Pedder,Other
+PELLEN,Pellen,Motorcycle
+PERENT,Perent,Other
+PERRY ,Perry,Car
+PETER ,Peter,Commercial
+PETERS,Peters,Commercial
+PEUG  ,Peugeot,Car
+PGO   ,PGO,Motorcycle
+PIAG  ,Piaggio,Motorcycle
+PIAGGI,Piaggio,Motorcycle
+PILATO,Pilato,Other
+PISTA ,Pista,Motorcycle
+PITPRO,Pit Pro,Motorcycle
+PLY   ,Plymouth,Car
+POCLN ,Poclin,Commercial
+POLARI,Polaris,Motorcycle
+POLEST,Polested,Car
+PONT  ,Pontiac,Car
+PORSCH,Porsche,Car
+PRB   ,PRB,Motorcycle
+PREVST,Prevost,Commercial
+PRNOTT,Prnott,Other
+PROONE,Pro One,Other
+PROTON,Proton,Car
+PUMA  ,Puma,Car
+PUTZM ,Putzmeister,Other
+QINGQI,Qingqi,Motorcycle
+QJ    ,Qjiang,Motorcycle
+QWMOTO,Qingwang,Motorcycle
+R C A ,RCA,Commercial
+R C M ,RCM,Car
+R ENF ,Ranforce,Car
+R ROV ,Range Rover,Car
+RAM   ,Ram,Commercial
+RAMBLR,Rambler,Car
+RANGER,Ranger,Commercial
+RAYCO ,Rayco,Other
+RDMAST,Red Master,Commercial
+REBODY,Rebody,Commercial
+REDLIF,Red Life,Motorcycle
+REFORM,Reform,Agricultural
+REN   ,Renault,Car
+REWACO,Rewaco,Motorcycle
+RFN   ,Refn,Caravan
+RGNT  ,Regent,Car
+RHINO ,Rhino,Other
+RIEJU ,Rieju,Motorcycle
+RILEY ,Riley,Car
+RIVIAN,Rivian,Car
+RLIANT,Reliant,Car
+ROADTC,Road Trac,Caravan
+ROBNLI,Robnell,Motorcycle
+ROGATT,Rogatti,Motorcycle
+ROLLER,Roller,Commercial
+ROLLS ,Rolls Royce,Car
+ROSENB,Rosenburg,Commercial
+ROVER ,Rover,Car
+ROYAL ,Royal,Car
+ROYEN ,Royen,Car
+S     ,Suzuki,Motorcycle
+S ELEC,S Electric,Car
+S S   ,Sunstar,Motorcycle
+S TGER,S Tiger,Motorcycle
+S W M ,SWM,Motorcycle
+SAAB  ,Saab,Car
+SACHS ,Sachs,Motorcycle
+SAIC  ,SAIC,Car
+SAKAI ,Sakai,Other
+SAME  ,Same,Agricultural
+SAMSNG,Samsung,Car
+SANY  ,Sany,Other
+SAVIC ,Savic,Motorcycle
+SCANIA,Scania,Commercial
+SCARAB,Scarab,Caravan
+SCHAFF,Schaffler,Agricultural
+SCHMID,Schmidt,Commercial
+SCHWAP,Schwab,Other
+SCOMAD,Scoma,Commercial
+SCORPA,Scorpa,Motorcycle
+SDB   ,SDB,Motorcycle
+SEA   ,Sea,Caravan
+SEAT  ,Seat,Car
+SECMA ,Secma,Car
+SEGWAY,Segway,Other
+SENNEB,Sennebogen,Other
+SETRA ,Setra,Commercial
+SGMW  ,SGMW,Car
+SHACMN,Shacman,Commercial
+SHANDO,Shando,Commercial
+SHANG ,Shanghai,Car
+SHENKP,Shenke,Motorcycle
+SHERCO,Sherco,Motorcycle
+SHIBAUU,Shibaura,Agricultural
+SHINER,Shiner,Other
+SHINRY,Shinery,Car
+SILNCE,Silence,Car
+SINO  ,Sino,Commercial
+SKAD  ,Skad,Commercial
+SKIDOO,Ski Doo,Motorcycle
+SKODA ,Skoda,Car
+SKTRIK,Skytrik,Other
+SKYTEA,Skytea,Car
+SKYWELL,Skywell,Car
+SLINER,Sliner,Commercial
+SMART ,Smart,Car
+SNORKE,Snorkel,Other
+SOL IN,Sol In,Car
+SOLEX ,Solex,Motorcycle
+SOLIS ,Solis,Agricultural
+SOLO  ,Solo,Motorcycle
+SPARTAN,Spartan,Caravan
+SPORTS,Sports,Car
+SPRAYL,Spray Line,Commercial
+SSANGY,SsangYong,Car
+STAR  ,Star,Commercial
+STARK ,Stark,Other
+STAT M,Stat Motor,Other
+STAVOS,Stavos,Other
+STEIGG,Steiggr,Motorcycle
+STELTH,Stealth,Car
+STERKE,Sterke,Commercial
+STERLI,Sterling,Car
+STEYR ,Steyr,Agricultural
+STILL ,Still,Other
+STONEF,Stone Fence,Other
+STUDE ,Studebaker,Car
+SUBARU,Subaru,Car
+SUMMIT,Summit,Caravan
+SUMTMO,Summit Motor,Commercial
+SUNB  ,Sunbeam,Motorcycle
+SUNBM ,Sunbeam,Motorcycle
+SUNCAM,Sun Cam,Caravan
+SUNMOT,Sunmoto,Motorcycle
+SUNWAR,Sunwar,Motorcycle
+SUPERI,Superior,Car
+SUPERS,Superstock,Motorcycle
+SURRON,Sur-Ron,Motorcycle
+SUZUKI,Suzuki,Car
+SWAG  ,Swag,Caravan
+SWIFT ,Swift,Caravan
+SX PWR,SX Power,Motorcycle
+SYLVA ,Sylva,Car
+SYM   ,SYM,Motorcycle
+T C M ,TCM,Commercial
+T D   ,TD,Other
+T G B ,TGB,Motorcycle
+T JACK,T Jack,Caravan
+T R S ,TRS,Motorcycle
+T V R ,TVR,Car
+T W N ,TWN,Motorcycle
+T Y M ,TYM,Motorcycle
+TADANO,Tadano,Commercial
+TAKECH,Takekuma,Motorcycle
+TALRIA,Talria,Motorcycle
+TALVOR,Talvor,Other
+TATA  ,Tata,Car
+TATRA ,Tatra,Commercial
+TAYDUN,Taydun,Other
+TAYLOR,Taylor,Commercial
+TD2000,TD2000,Commercial
+TDR   ,TDR,Motorcycle
+TEEBRO,Teebro,Motorcycle
+TENANT,Tenant,Commercial
+TENAX ,Tenax,Commercial
+TERBER,Terberg,Commercial
+TEREX ,Terex,Other
+TESLA ,Tesla,Car
+TGB   ,TGB,Motorcycle
+THEFIR,The Fire,Commercial
+THUMP ,Thump,Motorcycle
+THWAIT,Thwaites,Commercial
+TIANMA,Tianma,Car
+TIFFIN,Tiffin,Caravan
+TM    ,TM,Motorcycle
+TOMCAR,Tomcar,Car
+TOMCAT,Tomcat,Motorcycle
+TONELL,Tonello,Motorcycle
+TONGYA,Tongyang,Car
+TORINO,Torino,Car
+TORO  ,Toro,Other
+TORPED,Torpedo,Car
+TOUKZ ,Toukz,Car
+TAYRO ,Tayro,Commercial
+TRAKKA,Trakka,Caravan
+TRANTO,Tranto,Other
+TRIDEN,Trident,Car
+TRIUMM,Triumph,Car
+TUATAR,Tuatara,Car
+TURCHI,Turchia,Motorcycle
+TURFMN,Turfman,Agricultural
+TYMTRA,Tymtra,Commercial
+U CARR,U Carr,Commercial
+U D   ,UD,Commercial
+U LOAD,U Load,Commercial
+U R   ,UR,Car
+UBCO  ,UBCO,Motorcycle
+UN    ,UN,Other
+UNIMOG,Unimog,Commercial
+UNITED,United,Commercial
+UNIVER,Universal,Other
+UNSPEC,Unspecified,Unknown
+URAL  ,Ural,Motorcycle
+URSUS ,Ursus,Agricultural
+UTS   ,UTS,Other
+VALMET,Valmet,Agricultural
+VALTRA,Valtra,Agricultural
+VANGRD,Vanguard,Caravan
+VAUX  ,Vauxhall,Car
+VAUXHL,Vauxhall,Car
+VENIER,Venier,Other
+VENTRA,Ventra,Commercial
+VERM  ,Verim,Commercial
+VERMR ,Vermeer,Agricultural
+VERSAT,Versatile,Agricultural
+VESPA ,Vespa,Motorcycle
+VIC R ,Victory,Motorcycle
+VICTA ,Victa,Motorcycle
+VICTRY,Victory,Motorcycle
+VINCNT,Vincent,Motorcycle
+VMOTO ,Vmoto,Motorcycle
+VOGELE,Voegele,Other
+VOLKS ,Volkswagen,Car
+VOLVO ,Volvo,Commercial
+VULCAN,Vulcan,Motorcycle
+W C M ,WCM,Commercial
+W NEUS,W Neus,Car
+W STAR,West Star,Commercial
+WACKER,Wacker,Other
+WALKER,Walker,Other
+WARMAN,Warman,Commercial
+WEICHA,Weicha,Car
+WEST  ,West,Commercial
+WESTERN,Western,Commercial
+WESTST,West Star,Commercial
+WFIELD,Winfield,Commercial
+WHITE ,White,Commercial
+WHMTTR,Whitmore,Commercial
+WILLYS,Willys,Car
+WINDRO,Windrose,Caravan
+WINDSR,Windsor,Caravan
+WINNEB,Winnebago,Caravan
+WINTER,Winter,Caravan
+WIRTGN,Wirthgen,Other
+WOSLSE,Wolfse,Commercial
+WUS   ,WUS,Other
+XCMG  ,XCMG,Commercial
+XINGLI,Xingli,Car
+XPENG ,XPeng,Car
+YALE  ,Yale,Other
+YAMAHA,Yamaha,Motorcycle
+YANG  ,Yang,Motorcycle
+YANMR ,Yanmar,Agricultural
+YCF   ,YCF,Motorcycle
+YTO   ,YTO,Agricultural
+YUTONG,Yutong,Commercial
+Z LION,Zion,Commercial
+ZEEKR ,Zeekr,Car
+ZEHOO ,Zehoo,Car
+ZEN   ,Zen,Motorcycle
+ZEPHYR,Zephyr,Motorcycle
+ZERO  ,Zero,Motorcycle
+ZETOR ,Zetor,Agricultural
+ZHJNG ,Zhejiang,Car
+ZHONGN,Zhonghua,Car
+ZHONGT,Zhongtai,Car
+ZNEN  ,Znen,Motorcycle
+ZUMA  ,Zuma,Motorcycle
