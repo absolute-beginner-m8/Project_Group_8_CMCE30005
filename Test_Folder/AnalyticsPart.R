@@ -927,6 +927,9 @@ t95_model <- transfer_model_volume %>%
     )
 
 
+#### We can (probably should) use the top 10-20 models (we should probably weight my market share or something similar)
+
+### Need to clean models first then we can cut off and start modelling 
 
 
 
