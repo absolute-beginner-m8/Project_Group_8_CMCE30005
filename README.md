@@ -33,3 +33,17 @@ Project for CMCE30005
 ## Dataset
 
 
+# Install (only needs to run once)
+install.packages(c("dplyr", "tidyr", "ggplot2", "readr", "lubridate", "stringr", "forecast"))
+
+# Load (run every session)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(readr)
+library(lubridate)
+library(stringr)
+library(forecast)
+
+glimpse(monthly_new_vehicle_registration)
+
