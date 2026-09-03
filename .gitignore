@@ -66,3 +66,10 @@ rsconnect/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Large data files (don't push to GitHub)
+*.csv
+data/
+Test_Folder/
+monthly_*.csv
+complete_vehicle_mapping.csv
