@@ -1,523 +1,844 @@
-# Load libraries
-library(dplyr)
-library(tidyverse)
-library(lubridate)
-library(quantmod)
-library(tidyr)
-library(ggplot2)
-library(scales)
-library(gt)
-library(stringdist)
+"""
+PHASE 3: PREDICTIVE MODELING - ARIMA, PROPHET, XGBOOST
+Vehicle Transfer Volume Forecasting
 
+INPUTS: CSV files from R workflow (transfers_cleaned_with_analysis.csv)
+OUTPUTS: Model forecasts, backtests, comparison metrics
+INTEGRATION: Works with existing GitHub repo structure
 
-# Now read files
-new_vehicles <- read_csv("Raw_Datasets/monthly_new_vehicle_registration_may2023_2026.csv")
-transfer_vehicles <- read_csv("Raw_Datasets/monthly_vehicle_transfers_may2023_2026.csv")
-make_mapping <- read_csv("Raw_Datasets/complete_vehicle_mapping.csv")
+Usage:
+    python phase_3_forecasting.py --config config.yaml --backtest
+    python phase_3_forecasting.py --model arima --forecast 12
+"""
 
-# Data cleaning & Standardlization 
-clean_and_standardize <- function(data, make_mapping) {
-  data %>%
-    # Fix dates - make time based calculations possible by converting all dates into YYYY-MM-DD format
-    mutate(data_month_year = as.Date(paste0(data_month_year, "01"), format = "%Y%m%d")) %>%
-    
-    # Standardize raw vehicle codes to catch more matches
-    mutate(
-      CD_MAKE_VEH_raw = CD_MAKE_VEH,  # Keep original for reference
-      CD_MAKE_VEH = CD_MAKE_VEH %>%
-        str_squish() %>%               # Remove extra spaces
-        str_to_upper() %>%             # Convert to uppercase
-        str_remove_all("[^A-Z0-9 ]")   # Remove special characters
-    ) %>%
-    
-    # Join with make mapping
-    left_join( # keep all records even if no match found 
-      make_mapping %>% select(CD_MAKE_VEH, CD_MAKE_VEH_CLEAN, Category),
-      by = "CD_MAKE_VEH"
-    ) %>%
-    
-    # Use cleaned name, fallback to original if no match
-    mutate(
-      make_standard = coalesce(CD_MAKE_VEH_CLEAN, CD_MAKE_VEH),
-      Category = coalesce(Category, "Unknown")
-    ) %>% # unknown categories default to "Unknown"
-    
-    # Standardize text
-    mutate(
-      make_clean = make_standard %>% str_to_upper() %>% str_squish(),
-      model_clean = CD_MODEL_VEH %>% str_to_upper() %>% str_squish(),
-      colour_clean = CD_CLR_BDY_VEH_P %>% str_to_upper() %>% str_squish()
-    ) %>%
-    
-    # Remove formatting errors in models
-    mutate(
-      model_clean = model_clean %>%
-        str_remove_all("^[^A-Z0-9]+") %>% # remove leading non-alphanumeric
-        str_remove_all("[^A-Z0-9]+$") # remove trailling non-alphanumeric 
-    ) %>%
-    
-    # Extract year and month - for easy aggregation 
-    mutate(
-      transfer_year = year(data_month_year),
-      transfer_month = month(data_month_year) # useful for trend analysis 
-    ) %>% 
-    
-    select(CD_MAKE_VEH_raw, CD_MAKE_VEH, make_standard, Category, CD_MODEL_VEH, model_clean, 
-           CD_CLR_BDY_VEH_P, colour_clean, NB_YEAR_MFC_VEH, 
-           data_month_year, transfer_year, transfer_month, TOTAL, everything())
-}
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from datetime import datetime, timedelta
+import warnings
+import json
+import argparse
+from pathlib import Path
 
-# Apply cleaning
-new_clean <- clean_and_standardize(new_vehicles, make_mapping)
-transfer_clean <- clean_and_standardize(transfer_vehicles, make_mapping)
+warnings.filterwarnings('ignore')
 
+# Time series & forecasting
+from statsmodels.tsa.arima.model import ARIMA
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
+from statsmodels.tsa.seasonal import seasonal_decompose
+from statsmodels.tsa.stattools import adfuller, kpss
 
-# Detect unmatched codes & Apply fuzzy matching 
-# Find unmatched makes in transfers
-unmatched_transfer_codes <- transfer_clean %>% 
-  filter(is.na(CD_MAKE_VEH_CLEAN)) %>% 
-  distinct(CD_MAKE_VEH) %>%
-  arrange(CD_MAKE_VEH)
+# Prophet (Facebook's forecasting tool)
+try:
+    from fbprophet import Prophet
+    PROPHET_AVAILABLE = True
+except ImportError:
+    PROPHET_AVAILABLE = False
+    print("⚠ fbprophet not installed. Install with: pip install fbprophet")
 
-unmatched_transfer_count <- nrow(unmatched_transfer_codes)
+# Machine learning
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import TimeSeriesSplit
+from sklearn.metrics import mean_absolute_error, mean_squared_error, mean_absolute_percentage_error
+import xgboost as xgb
 
-# Find unmatched makes in new vehicles
-unmatched_new_codes <- new_clean %>% 
-  filter(is.na(CD_MAKE_VEH_CLEAN)) %>% 
-  distinct(CD_MAKE_VEH) %>%
-  arrange(CD_MAKE_VEH)
-
-unmatched_new_count <- nrow(unmatched_new_codes)
-
-print(paste("Unmatched codes in transfers:", unmatched_transfer_count))
-print(paste("Unmatched codes in new vehicles:", unmatched_new_count))
-
-# Show unmatched codes if any
-if (unmatched_transfer_count > 0) {
-  print("Unmatched transfer codes:")
-  print(unmatched_transfer_codes)
-  
-  affected_records <- transfer_clean %>%
-    semi_join(unmatched_transfer_codes, by = "CD_MAKE_VEH") %>%
-    nrow()
-  print(paste("Records affected:", affected_records))
-}
-
-# Below section (fuzzy matching algorithm) aim to handle codes that don't exist in the mapping table (reference: Claude AI, Haiku 4.5)
-# ============ FUZZY MATCHING FOR REMAINING UNKNOWNS ============ 
-if (unmatched_transfer_count > 0) {
-  print("\nApplying fuzzy matching...")
-  
-  # Get known makes from mapping
-  known_makes <- make_mapping %>% 
-    distinct(CD_MAKE_VEH) %>% 
-    pull(CD_MAKE_VEH)
-  
-  # Find closest matches for each unmatched code
-  fuzzy_matches <- tibble(
-    unmatched_code = unmatched_transfer_codes$CD_MAKE_VEH
-  ) %>%
-    mutate(
-      # Find the closest matching known make
-      matched_make = map_chr(unmatched_code, 
-                             ~known_makes[which.min(stringdist(., known_makes))]), # calculate the Levenshtein distance & find the closest match 
-      # Calculate similarity (0-1)
-      similarity_score = map_dbl(unmatched_code,
-                                 ~1 - (min(stringdist(., known_makes)) / max(nchar(.), nchar(known_makes)))) # normalise to 0-1 range
-    ) %>%
-    filter(similarity_score > 0.7)  # Only high confidence matches (using 0.7 as the threshold)
-  
-  if (nrow(fuzzy_matches) > 0) {
-    print("Fuzzy matches found:")
-    print(fuzzy_matches)
-    
-    # Create supplementary mapping
-    fuzzy_mapping <- fuzzy_matches %>%
-      select(unmatched_code, matched_make) %>%
-      left_join(
-        make_mapping %>% select(CD_MAKE_VEH, CD_MAKE_VEH_CLEAN),
-        by = c("matched_make" = "CD_MAKE_VEH")
-      ) %>%
-      rename(CD_MAKE_VEH = unmatched_code)
-    
-    # Apply to transfer data
-    transfer_clean <- transfer_clean %>%
-      left_join(fuzzy_mapping %>% select(CD_MAKE_VEH, CD_MAKE_VEH_CLEAN), 
-                by = "CD_MAKE_VEH", suffix = c("", "_fuzzy")) %>%
-      mutate(
-        CD_MAKE_VEH_CLEAN = coalesce(CD_MAKE_VEH_CLEAN, CD_MAKE_VEH_CLEAN_fuzzy),
-        make_standard = coalesce(CD_MAKE_VEH_CLEAN, CD_MAKE_VEH)
-      ) %>%
-      select(-CD_MAKE_VEH_CLEAN_fuzzy)
-    
-    print("✓ Fuzzy matches applied to transfers")
-  } else {
-    print("No high-confidence fuzzy matches found (< 0.7 threshold)")
-  }
-}
-
-# Same for new vehicles
-if (unmatched_new_count > 0) {
-  print("\nApplying fuzzy matching to new vehicles...")
-  
-  known_makes <- make_mapping %>% 
-    distinct(CD_MAKE_VEH) %>% 
-    pull(CD_MAKE_VEH)
-  
-  fuzzy_matches_new <- tibble(
-    unmatched_code = unmatched_new_codes$CD_MAKE_VEH
-  ) %>%
-    mutate(
-      matched_make = map_chr(unmatched_code, 
-                             ~known_makes[which.min(stringdist(., known_makes))]),
-      similarity_score = map_dbl(unmatched_code,
-                                 ~1 - (min(stringdist(., known_makes)) / max(nchar(.), nchar(known_makes))))
-    ) %>%
-    filter(similarity_score > 0.7)
-  
-  if (nrow(fuzzy_matches_new) > 0) {
-    fuzzy_mapping_new <- fuzzy_matches_new %>%
-      select(unmatched_code, matched_make) %>%
-      left_join(
-        make_mapping %>% select(CD_MAKE_VEH, CD_MAKE_VEH_CLEAN),
-        by = c("matched_make" = "CD_MAKE_VEH")
-      ) %>%
-      rename(CD_MAKE_VEH = unmatched_code)
-    
-    new_clean <- new_clean %>%
-      left_join(fuzzy_mapping_new %>% select(CD_MAKE_VEH, CD_MAKE_VEH_CLEAN), 
-                by = "CD_MAKE_VEH", suffix = c("", "_fuzzy")) %>%
-      mutate(
-        CD_MAKE_VEH_CLEAN = coalesce(CD_MAKE_VEH_CLEAN, CD_MAKE_VEH_CLEAN_fuzzy),
-        make_standard = coalesce(CD_MAKE_VEH_CLEAN, CD_MAKE_VEH)
-      ) %>%
-      select(-CD_MAKE_VEH_CLEAN_fuzzy)
-    
-    print("✓ Fuzzy matches applied to new vehicles")
-  }
-}
-
-# Final check
-final_unmatched_transfer <- transfer_clean %>% 
-  filter(is.na(CD_MAKE_VEH_CLEAN)) %>% 
-  n_distinct(.$CD_MAKE_VEH)
-
-final_unmatched_new <- new_clean %>% 
-  filter(is.na(CD_MAKE_VEH_CLEAN)) %>% 
-  n_distinct(.$CD_MAKE_VEH)
-
-print(paste("\nFinal unmatched in transfers:", final_unmatched_transfer))
-print(paste("Final unmatched in new vehicles:", final_unmatched_new))
+# ============================================================================
+# CONFIGURATION
 # ============================================================================
 
-# Filter & Engineer features 
-# Keep only vehicles from 2010 onwards
-transfer_clean <- transfer_clean %>%
-  filter(NB_YEAR_MFC_VEH >= 2010)
+class Config:
+    """Centralized configuration for reproducibility"""
+    
+    # Data paths (relative to script location)
+    DATA_DIR = Path("outputs/CSVs")  # From R workflow
+    RAW_DATA_DIR = Path("Raw_Datasets")  # Raw monthly data
+    
+    # Primary file paths (new workflow)
+    TRANSFERS_FILE = DATA_DIR / "transfers_cleaned_with_analysis.csv"
+    REGISTRATIONS_FILE = DATA_DIR / "registrations_cleaned_with_analysis.csv"
+    
+    # Raw data files (for time series analysis)
+    RAW_TRANSFERS_FILE = RAW_DATA_DIR / "monthly_vehicle_transfers_may2023_2026.csv"
+    RAW_REGISTRATIONS_FILE = RAW_DATA_DIR / "monthly_new_vehicle_registration_may2023_2026.csv"
+    
+    # Output paths
+    OUTPUT_DIR = Path("outputs/forecasts")
+    RESULTS_DIR = Path("outputs/results")
+    PLOTS_DIR = Path("outputs/plots")
+    
+    # Model parameters
+    ARIMA_ORDER = (1, 1, 1)  # Will be auto-tuned if not specified
+    PROPHET_INTERVAL_WIDTH = 0.95
+    XGBOOST_PARAMS = {
+        'n_estimators': 200,
+        'max_depth': 5,
+        'learning_rate': 0.05,
+        'subsample': 0.8,
+        'random_state': 42
+    }
+    
+    # Forecasting
+    FORECAST_HORIZON = 12  # months ahead
+    BACKTEST_WINDOW = 6    # months to test (rolling window)
+    TEST_SPLIT = 0.7      # 70% train, 30% test
+    
+    # Top makes to forecast individually
+    TOP_N_MAKES = 5
+    
+    @classmethod
+    def setup_directories(cls):
+        """Create output directories if they don't exist"""
+        for directory in [cls.OUTPUT_DIR, cls.RESULTS_DIR, cls.PLOTS_DIR]:
+            directory.mkdir(parents=True, exist_ok=True)
 
-# Remove NA models and empty strings
-transfer_clean <- transfer_clean %>%
-  filter(
-    !is.na(model_clean),
-    str_squish(model_clean) != ""
-  )
+# ============================================================================
+# DATA LOADING & PREPARATION
+# ============================================================================
 
-new_clean <- new_clean %>%
-  filter(
-    !is.na(model_clean),
-    str_squish(model_clean) != ""
-  )
+class DataLoader:
+    """Handle data loading and aggregation from R workflow"""
+    
+    @staticmethod
+    def load_transfers():
+        """Load transfers data from raw monthly file and aggregate"""
+        try:
+            # Load raw monthly transfers file
+            if not Config.RAW_TRANSFERS_FILE.exists():
+                raise FileNotFoundError(f"Raw transfers file not found: {Config.RAW_TRANSFERS_FILE}")
+            
+            print(f"ℹ Loading raw transfers data from: {Config.RAW_TRANSFERS_FILE.name}")
+            df = pd.read_csv(Config.RAW_TRANSFERS_FILE)
+            
+            # Convert data_month_year (YYYYMM) to proper date
+            df['date'] = pd.to_datetime(df['data_month_year'], format='%Y%m')
+            
+            # Aggregate to monthly totals
+            monthly = df.groupby('date')['TOTAL'].sum().sort_index()
+            
+            print(f"✓ Loaded transfers: {len(df):,} records")
+            print(f"  Monthly observations: {len(monthly)}")
+            print(f"  Date range: {monthly.index.min().date()} to {monthly.index.max().date()}")
+            
+            return monthly, df
+        
+        except FileNotFoundError as e:
+            print(f"✗ Error: {e}")
+            print(f"  Make sure raw data files are in {Config.RAW_DATA_DIR}/")
+            raise
+        except Exception as e:
+            print(f"✗ Error processing transfers data: {e}")
+            raise
+    
+    @staticmethod
+    def load_by_make(df, top_n=5):
+        """Load monthly time series by individual makes"""
+        # Clean make names (strip whitespace)
+        df['make_clean'] = df['CD_MAKE_VEH'].str.strip()
+        
+        # Get top makes by volume
+        makes_volumes = df.groupby('make_clean')['TOTAL'].sum().nlargest(top_n)
+        
+        by_make = {}
+        for make in makes_volumes.index:
+            make_data = df[df['make_clean'] == make]
+            monthly = make_data.groupby('date')['TOTAL'].sum().sort_index()
+            by_make[make] = monthly
+        
+        return by_make
 
-# Calculate market share and filter to top 95%
-make_volume_transfer <- transfer_clean %>%
-  group_by(make_standard) %>%
-  summarise(total_transfers = sum(TOTAL, na.rm = TRUE), .groups = "drop") %>%
-  arrange(desc(total_transfers)) %>%
-  mutate(
-    market_share = total_transfers / sum(total_transfers),
-    cumulative_share = cumsum(market_share)
-  )
+# ============================================================================
+# DATA QUALITY & DIAGNOSTICS
+# ============================================================================
 
-top_makes_95_transfer <- make_volume_transfer %>%
-  filter(lag(cumulative_share, default = 0) < 0.95) %>%
-  pull(make_standard)
+class TimeSeriesDiagnostics:
+    """Analyze time series properties"""
+    
+    @staticmethod
+    def check_stationarity(series, name="Series"):
+        """Test stationarity with ADF and KPSS"""
+        # Augmented Dickey-Fuller test
+        adf_result = adfuller(series.dropna(), autolag='AIC')
+        adf_stationary = adf_result[1] < 0.05
+        
+        # KPSS test
+        kpss_result = kpss(series.dropna(), regression='c', nlags='auto')
+        kpss_stationary = kpss_result[1] > 0.05
+        
+        results = {
+            'name': name,
+            'n_obs': len(series),
+            'adf_pvalue': adf_result[1],
+            'adf_stationary': adf_stationary,
+            'kpss_pvalue': kpss_result[1],
+            'kpss_stationary': kpss_stationary,
+            'consensus': adf_stationary and kpss_stationary
+        }
+        
+        return results
+    
+    @staticmethod
+    def decompose_series(series, period=12):
+        """Decompose time series into components"""
+        try:
+            decomposition = seasonal_decompose(series, model='additive', period=period)
+            return decomposition
+        except Exception as e:
+            print(f"⚠ Decomposition failed: {e}")
+            return None
 
-transfer_top_makes <- transfer_clean %>%
-  filter(make_standard %in% top_makes_95_transfer)
+# ============================================================================
+# MODEL 1: ARIMA
+# ============================================================================
 
-# Same for new vehicles
-make_volume_new <- new_clean %>%
-  group_by(make_standard) %>%
-  summarise(total_transfers = sum(TOTAL, na.rm = TRUE), .groups = "drop") %>%
-  arrange(desc(total_transfers)) %>%
-  mutate(
-    market_share = total_transfers / sum(total_transfers),
-    cumulative_share = cumsum(market_share)
-  )
+class ARIMAForecaster:
+    """Auto-regressive Integrated Moving Average model"""
+    
+    def __init__(self, order=None, auto_optimize=True):
+        self.order = order
+        self.auto_optimize = auto_optimize
+        self.model = None
+        self.fitted = None
+        self.history = {}
+    
+    def find_best_order(self, series, max_p=3, max_d=2, max_q=3):
+        """Grid search for best (p,d,q) order"""
+        print(f"\n🔍 Optimizing ARIMA parameters...")
+        
+        best_aic = np.inf
+        best_order = None
+        
+        import itertools
+        
+        for p, d, q in itertools.product(range(max_p), range(max_d), range(max_q)):
+            try:
+                model = ARIMA(series, order=(p, d, q))
+                fitted = model.fit()
+                
+                if fitted.aic < best_aic:
+                    best_aic = fitted.aic
+                    best_order = (p, d, q)
+            except:
+                continue
+        
+        print(f"  Best order: ARIMA{best_order} (AIC: {best_aic:.2f})")
+        self.order = best_order
+        
+        return best_order
+    
+    def fit(self, train_series):
+        """Fit ARIMA model"""
+        if self.auto_optimize and self.order is None:
+            self.find_best_order(train_series)
+        
+        self.model = ARIMA(train_series, order=self.order)
+        self.fitted = self.model.fit()
+        
+        self.history = {
+            'aic': self.fitted.aic,
+            'bic': self.fitted.bic,
+            'order': self.order
+        }
+        
+        print(f"  ✓ ARIMA{self.order} fitted")
+        return self.fitted
+    
+    def forecast(self, steps):
+        """Generate forecast"""
+        forecast_result = self.fitted.get_forecast(steps=steps)
+        forecast = forecast_result.predicted_mean
+        conf_int = forecast_result.conf_int()
+        
+        return forecast, conf_int
+    
+    def backtest_walk_forward(self, series, window=6):
+        """Walk-forward backtest"""
+        print(f"\n📊 ARIMA Walk-Forward Backtest (window={window}m)...")
+        
+        predictions = []
+        actuals = []
+        
+        n_obs = len(series)
+        n_tests = (n_obs - window) // window  # Number of rolling windows
+        
+        for i in range(n_tests):
+            train_end = (i + 1) * window
+            test_start = train_end
+            test_end = test_start + window
+            
+            if test_end > n_obs:
+                break
+            
+            train = series[:train_end]
+            test = series[test_start:test_end]
+            
+            try:
+                model = ARIMA(train, order=self.order)
+                fitted = model.fit()
+                forecast, _ = self.forecast_from_fitted(fitted, window)
+                
+                predictions.extend(forecast.values)
+                actuals.extend(test.values)
+            except:
+                continue
+        
+        if predictions:
+            mae = mean_absolute_error(actuals, predictions)
+            rmse = np.sqrt(mean_squared_error(actuals, predictions))
+            mape = mean_absolute_percentage_error(actuals, predictions)
+            
+            self.history['backtest'] = {
+                'mae': mae,
+                'rmse': rmse,
+                'mape': mape,
+                'n_predictions': len(predictions)
+            }
+            
+            print(f"  MAE: {mae:.0f} | RMSE: {rmse:.0f} | MAPE: {mape:.2%}")
+        
+        return predictions, actuals
+    
+    @staticmethod
+    def forecast_from_fitted(fitted, steps):
+        """Forecast from already-fitted model"""
+        forecast_result = fitted.get_forecast(steps=steps)
+        forecast = forecast_result.predicted_mean
+        conf_int = forecast_result.conf_int()
+        return forecast, conf_int
 
-top_makes_95_new <- make_volume_new %>%
-  filter(lag(cumulative_share, default = 0) < 0.95) %>%
-  pull(make_standard)
+# ============================================================================
+# MODEL 2: PROPHET
+# ============================================================================
 
-new_top_makes <- new_clean %>%
-  filter(make_standard %in% top_makes_95_new)
+class ProphetForecaster:
+    """Facebook Prophet - handles multiple seasonalities well"""
+    
+    def __init__(self):
+        if not PROPHET_AVAILABLE:
+            raise ImportError("fbprophet not installed. Run: pip install fbprophet")
+        
+        self.model = None
+        self.history = {}
+    
+    def fit(self, series, interval_width=0.95):
+        """Fit Prophet model"""
+        # Convert to Prophet format
+        df = pd.DataFrame({
+            'ds': series.index,
+            'y': series.values
+        })
+        
+        self.model = Prophet(
+            interval_width=interval_width,
+            yearly_seasonality=True,
+            weekly_seasonality=False,
+            daily_seasonality=False
+        )
+        
+        # Suppress logging
+        import logging
+        logging.getLogger('fbprophet').setLevel(logging.WARNING)
+        
+        self.model.fit(df)
+        
+        print(f"  ✓ Prophet model fitted")
+        return self.model
+    
+    def forecast(self, steps):
+        """Generate forecast"""
+        future = self.model.make_future_dataframe(periods=steps, freq='MS')
+        forecast = self.model.predict(future)
+        
+        # Extract forecast for next periods only
+        forecast = forecast.tail(steps)
+        
+        pred = forecast['yhat'].values
+        conf_lower = forecast['yhat_lower'].values
+        conf_upper = forecast['yhat_upper'].values
+        
+        return pred, conf_lower, conf_upper
+    
+    def backtest_walk_forward(self, series, window=6):
+        """Walk-forward backtest"""
+        print(f"\n📊 Prophet Walk-Forward Backtest (window={window}m)...")
+        
+        predictions = []
+        actuals = []
+        
+        n_obs = len(series)
+        n_tests = (n_obs - window) // window
+        
+        for i in range(n_tests):
+            train_end = (i + 1) * window
+            test_start = train_end
+            test_end = test_start + window
+            
+            if test_end > n_obs:
+                break
+            
+            train = series[:train_end]
+            test = series[test_start:test_end]
+            
+            try:
+                prophet = ProphetForecaster()
+                prophet.fit(train)
+                pred, _, _ = prophet.forecast(window)
+                
+                predictions.extend(pred)
+                actuals.extend(test.values)
+            except:
+                continue
+        
+        if predictions:
+            mae = mean_absolute_error(actuals, predictions)
+            rmse = np.sqrt(mean_squared_error(actuals, predictions))
+            mape = mean_absolute_percentage_error(actuals, predictions)
+            
+            self.history['backtest'] = {
+                'mae': mae,
+                'rmse': rmse,
+                'mape': mape,
+                'n_predictions': len(predictions)
+            }
+            
+            print(f"  MAE: {mae:.0f} | RMSE: {rmse:.0f} | MAPE: {mape:.2%}")
+        
+        return predictions, actuals
 
+# ============================================================================
+# MODEL 3: XGBOOST (MACHINE LEARNING)
+# ============================================================================
 
-# Feature Engineering - Vehicle Age
-transfer_top_makes <- transfer_top_makes %>%
-  mutate(
-    vehicle_age = transfer_year - NB_YEAR_MFC_VEH,
-    age_bucket = case_when(
-      vehicle_age <= 2 ~ "0-2 years",
-      vehicle_age <= 6 ~ "3-6 years",
-      vehicle_age <= 9 ~ "7-9 years",
-      vehicle_age <= 12 ~ "10-12 years",
-      vehicle_age <= 16 ~ "13-16 years",
-      TRUE ~ NA_character_
-    ),
-    age_bucket = factor(age_bucket, 
-                        levels = c("0-2 years", "3-6 years", "7-9 years", 
-                                   "10-12 years", "13-16 years"))
-  )
+class XGBoostForecaster:
+    """XGBoost with engineered lag features"""
+    
+    def __init__(self, params=None):
+        self.params = params or Config.XGBOOST_PARAMS
+        self.model = None
+        self.scaler = StandardScaler()
+        self.history = {}
+        self.feature_importance = None
+    
+    @staticmethod
+    def create_lag_features(series, lags=[1, 3, 6, 12], n_ahead=1):
+        """Create lagged features for ML model"""
+        data = series.values
+        X, y = [], []
+        
+        for i in range(len(series) - max(lags) - n_ahead):
+            features = [data[i + max(lags) - lag] for lag in lags]
+            target = data[i + max(lags) + n_ahead - 1]
+            X.append(features)
+            y.append(target)
+        
+        return np.array(X), np.array(y)
+    
+    def fit(self, train_series):
+        """Fit XGBoost model"""
+        X, y = self.create_lag_features(train_series)
+        
+        # Normalize features
+        X_scaled = self.scaler.fit_transform(X)
+        
+        self.model = xgb.XGBRegressor(**self.params)
+        self.model.fit(X_scaled, y, verbose=False)
+        
+        # Store feature importance
+        self.feature_importance = self.model.feature_importances_
+        
+        print(f"  ✓ XGBoost model fitted ({len(X)} training samples)")
+        return self.model
+    
+    def forecast(self, series, steps):
+        """Generate forecast using recursive prediction"""
+        forecast = []
+        history = series.copy()
+        
+        for _ in range(steps):
+            # Get lag features from history
+            lags = [1, 3, 6, 12]
+            features = np.array([
+                [history.values[-(lag)] for lag in lags]
+            ])
+            
+            # Normalize and predict
+            features_scaled = self.scaler.transform(features)
+            pred = self.model.predict(features_scaled)[0]
+            forecast.append(pred)
+            
+            # Add prediction to history for next iteration
+            history = pd.concat([
+                history,
+                pd.Series([pred], index=[history.index[-1] + pd.DateOffset(months=1)])
+            ])
+        
+        return np.array(forecast)
+    
+    def backtest_walk_forward(self, series, window=6):
+        """Walk-forward backtest"""
+        print(f"\n📊 XGBoost Walk-Forward Backtest (window={window}m)...")
+        
+        predictions = []
+        actuals = []
+        
+        n_obs = len(series)
+        n_tests = (n_obs - 24) // window  # Need 24 months for lag features
+        
+        for i in range(n_tests):
+            train_end = 24 + (i * window)
+            test_start = train_end
+            test_end = test_start + window
+            
+            if test_end > n_obs:
+                break
+            
+            train = series[:train_end]
+            test = series[test_start:test_end]
+            
+            try:
+                xgb_model = XGBoostForecaster(self.params)
+                xgb_model.fit(train)
+                pred = xgb_model.forecast(train, window)
+                
+                predictions.extend(pred)
+                actuals.extend(test.values)
+            except:
+                continue
+        
+        if predictions:
+            mae = mean_absolute_error(actuals, predictions)
+            rmse = np.sqrt(mean_squared_error(actuals, predictions))
+            mape = mean_absolute_percentage_error(actuals, predictions)
+            
+            self.history['backtest'] = {
+                'mae': mae,
+                'rmse': rmse,
+                'mape': mape,
+                'n_predictions': len(predictions)
+            }
+            
+            print(f"  MAE: {mae:.0f} | RMSE: {rmse:.0f} | MAPE: {mape:.2%}")
+        
+        return predictions, actuals
 
-# Analysis - Market Activity 
-# Monthly transfer volume
-used_monthly <- transfer_top_makes %>%
-  group_by(data_month_year) %>%
-  summarise(transfers = sum(TOTAL, na.rm = TRUE), .groups = "drop")
+# ============================================================================
+# MODEL ENSEMBLE & COMPARISON
+# ============================================================================
 
-# Top 15 makes by total transfers
-top_makes <- transfer_top_makes %>%
-  group_by(make_standard) %>%
-  summarise(transfers = sum(TOTAL, na.rm = TRUE), .groups = "drop") %>%
-  arrange(desc(transfers)) %>%
-  slice_head(n = 15)
+class ModelEnsemble:
+    """Compare and combine multiple models"""
+    
+    def __init__(self):
+        self.models = {}
+        self.test_results = {}
+    
+    def train_and_evaluate(self, series, test_split=0.7):
+        """Train all models and evaluate on test set"""
+        
+        split_point = int(len(series) * test_split)
+        train_series = series[:split_point]
+        test_series = series[split_point:]
+        
+        print("\n" + "="*70)
+        print("TRAINING & EVALUATING ALL MODELS")
+        print("="*70)
+        
+        # 1. ARIMA
+        print("\n1️⃣  ARIMA")
+        try:
+            arima = ARIMAForecaster(auto_optimize=True)
+            arima.fit(train_series)
+            arima_pred, arima_ci = arima.forecast(len(test_series))
+            
+            arima_mae = mean_absolute_error(test_series, arima_pred)
+            arima_rmse = np.sqrt(mean_squared_error(test_series, arima_pred))
+            arima_mape = mean_absolute_percentage_error(test_series, arima_pred)
+            
+            self.models['ARIMA'] = arima
+            self.test_results['ARIMA'] = {
+                'mae': arima_mae,
+                'rmse': arima_rmse,
+                'mape': arima_mape,
+                'predictions': arima_pred
+            }
+            print(f"  ✓ MAE: {arima_mae:.0f} | RMSE: {arima_rmse:.0f} | MAPE: {arima_mape:.2%}")
+        except Exception as e:
+            print(f"  ✗ Failed: {e}")
+        
+        # 2. PROPHET
+        print("\n2️⃣  PROPHET")
+        try:
+            prophet = ProphetForecaster()
+            prophet.fit(train_series)
+            prophet_pred, _, _ = prophet.forecast(len(test_series))
+            
+            prophet_mae = mean_absolute_error(test_series, prophet_pred)
+            prophet_rmse = np.sqrt(mean_squared_error(test_series, prophet_pred))
+            prophet_mape = mean_absolute_percentage_error(test_series, prophet_pred)
+            
+            self.models['Prophet'] = prophet
+            self.test_results['Prophet'] = {
+                'mae': prophet_mae,
+                'rmse': prophet_rmse,
+                'mape': prophet_mape,
+                'predictions': prophet_pred
+            }
+            print(f"  ✓ MAE: {prophet_mae:.0f} | RMSE: {prophet_rmse:.0f} | MAPE: {prophet_mape:.2%}")
+        except Exception as e:
+            print(f"  ✗ Failed: {e}")
+        
+        # 3. XGBOOST
+        print("\n3️⃣  XGBOOST")
+        try:
+            xgboost = XGBoostForecaster()
+            xgboost.fit(train_series)
+            xgboost_pred = xgboost.forecast(train_series, len(test_series))
+            
+            xgboost_mae = mean_absolute_error(test_series, xgboost_pred)
+            xgboost_rmse = np.sqrt(mean_squared_error(test_series, xgboost_pred))
+            xgboost_mape = mean_absolute_percentage_error(test_series, xgboost_pred)
+            
+            self.models['XGBoost'] = xgboost
+            self.test_results['XGBoost'] = {
+                'mae': xgboost_mae,
+                'rmse': xgboost_rmse,
+                'mape': xgboost_mape,
+                'predictions': xgboost_pred
+            }
+            print(f"  ✓ MAE: {xgboost_mae:.0f} | RMSE: {xgboost_rmse:.0f} | MAPE: {xgboost_mape:.2%}")
+        except Exception as e:
+            print(f"  ✗ Failed: {e}")
+        
+        return train_series, test_series
+    
+    def ensemble_forecast(self, steps, weights=None):
+        """Combine forecasts from all models (simple average)"""
+        if weights is None:
+            weights = {model: 1/len(self.models) for model in self.models}
+        
+        ensemble_pred = np.zeros(steps)
+        
+        for model_name, model in self.models.items():
+            if model_name == 'ARIMA':
+                pred, _ = model.forecast(steps)
+            elif model_name == 'Prophet':
+                pred, _, _ = model.forecast(steps)
+            elif model_name == 'XGBoost':
+                # Need series to forecast from - use last training series
+                pred = model.forecast(model.series, steps)
+            
+            ensemble_pred += pred * weights[model_name]
+        
+        return ensemble_pred
+    
+    def get_comparison_table(self):
+        """Return model comparison as DataFrame"""
+        comparison = []
+        
+        for model_name, results in self.test_results.items():
+            comparison.append({
+                'Model': model_name,
+                'MAE': round(results['mae'], 0),
+                'RMSE': round(results['rmse'], 0),
+                'MAPE': f"{results['mape']:.2%}",
+                'Best': '✓' if results['mae'] == min(r['mae'] for r in self.test_results.values()) else ''
+            })
+        
+        return pd.DataFrame(comparison).sort_values('MAE')
 
-# Top 20 models
-top_models <- transfer_top_makes %>%
-  group_by(make_standard, model_clean) %>%
-  summarise(transfers = sum(TOTAL, na.rm = TRUE), .groups = "drop") %>%
-  arrange(desc(transfers)) %>%
-  slice_head(n = 20) %>%
-  mutate(vehicle = paste(make_standard, model_clean))
+# ============================================================================
+# VISUALIZATION
+# ============================================================================
 
+class Visualizer:
+    """Create publication-ready visualizations"""
+    
+    @staticmethod
+    def plot_model_comparison(train_series, test_series, models_results):
+        """Plot actual vs predictions for all models"""
+        fig, ax = plt.subplots(figsize=(14, 6))
+        
+        # Actual data
+        ax.plot(train_series.index, train_series.values, 'o-', linewidth=2, 
+               label='Training Data', color='steelblue', markersize=4)
+        ax.plot(test_series.index, test_series.values, 'o-', linewidth=2,
+               label='Actual Test Data', color='darkblue', markersize=4)
+        
+        # Model predictions
+        colors = {'ARIMA': 'coral', 'Prophet': 'seagreen', 'XGBoost': 'purple'}
+        for model_name, results in models_results.items():
+            ax.plot(test_series.index, results['predictions'], '--', linewidth=2,
+                   label=f"{model_name} Forecast", color=colors.get(model_name, 'gray'))
+        
+        ax.set_title('Model Comparison: Transfer Volume Forecasts', fontsize=14, fontweight='bold')
+        ax.set_xlabel('Date')
+        ax.set_ylabel('Monthly Transfers')
+        ax.legend(loc='best')
+        ax.grid(True, alpha=0.3)
+        
+        plt.tight_layout()
+        plt.savefig(Config.PLOTS_DIR / 'phase3_model_comparison.png', dpi=300, bbox_inches='tight')
+        print(f"✓ Saved: phase3_model_comparison.png")
+        plt.close()
+    
+    @staticmethod
+    def plot_forecast_horizon(series, model, steps=12, model_name='ARIMA'):
+        """Plot historical data + forecast + confidence intervals"""
+        fig, ax = plt.subplots(figsize=(14, 6))
+        
+        # Historical data
+        ax.plot(series.index, series.values, 'o-', linewidth=2, label='Historical Data', markersize=5)
+        
+        # Forecast
+        forecast, conf = model.forecast(steps)
+        future_dates = pd.date_range(start=series.index[-1] + pd.DateOffset(months=1), 
+                                     periods=steps, freq='MS')
+        
+        ax.plot(future_dates, forecast, 'o--', linewidth=2, label='Forecast', color='coral', markersize=5)
+        
+        # Confidence interval
+        ax.fill_between(future_dates, conf.iloc[:, 0], conf.iloc[:, 1], 
+                       alpha=0.2, color='coral', label='95% Confidence Interval')
+        
+        ax.axvline(x=series.index[-1], color='red', linestyle=':', linewidth=2, label='Forecast Start')
+        
+        ax.set_title(f'{model_name} - 12-Month Forecast', fontsize=14, fontweight='bold')
+        ax.set_xlabel('Date')
+        ax.set_ylabel('Monthly Transfers')
+        ax.legend(loc='best')
+        ax.grid(True, alpha=0.3)
+        
+        plt.tight_layout()
+        plt.savefig(Config.PLOTS_DIR / f'phase3_{model_name.lower()}_forecast.png', 
+                   dpi=300, bbox_inches='tight')
+        print(f"✓ Saved: phase3_{model_name.lower()}_forecast.png")
+        plt.close()
 
-# Analysis - Growth & Trends 
-# Year-over-year for new registrations
-new_yearly <- new_top_makes %>%
-  group_by(make_standard, model_clean, transfer_year) %>%
-  summarise(registrations = sum(TOTAL, na.rm = TRUE), .groups = "drop") %>%
-  group_by(make_standard, model_clean) %>%
-  mutate(
-    growth = (registrations - lag(registrations)) / lag(registrations) * 100
-  ) %>%
-  ungroup()
+# ============================================================================
+# MAIN EXECUTION
+# ============================================================================
 
-# Recent activity (last 12 months)
-latest_date <- max(transfer_top_makes$data_month_year)
+def main():
+    """Main forecasting pipeline"""
+    
+    Config.setup_directories()
+    
+    print("="*70)
+    print("PHASE 3: PREDICTIVE MODELING")
+    print("="*70)
+    
+    # Load data
+    print("\n📥 Loading data...")
+    monthly_series, transfers_df = DataLoader.load_transfers()
+    by_make = DataLoader.load_by_make(transfers_df, top_n=Config.TOP_N_MAKES)
+    
+    # Diagnostics
+    print("\n📊 Time Series Diagnostics...")
+    stationarity = TimeSeriesDiagnostics.check_stationarity(monthly_series, "Total Transfers")
+    print(f"  ADF p-value: {stationarity['adf_pvalue']:.4f} {'(Stationary ✓)' if stationarity['adf_stationary'] else '(Non-stationary ✗)'}")
+    
+    decomp = TimeSeriesDiagnostics.decompose_series(monthly_series)
+    
+    # Train & evaluate all models
+    print("\n" + "="*70)
+    ensemble = ModelEnsemble()
+    train_series, test_series = ensemble.train_and_evaluate(monthly_series, test_split=Config.TEST_SPLIT)
+    
+    # Compare models
+    print("\n" + "="*70)
+    print("MODEL COMPARISON (Test Set Performance)")
+    print("="*70)
+    comparison_df = ensemble.get_comparison_table()
+    print("\n" + comparison_df.to_string(index=False))
+    comparison_df.to_csv(Config.RESULTS_DIR / 'phase3_model_comparison.csv', index=False)
+    
+    # Future forecast with best model
+    print("\n" + "="*70)
+    print(f"FUTURE FORECAST ({Config.FORECAST_HORIZON} months)")
+    print("="*70)
+    
+    best_model_name = comparison_df.iloc[0]['Model']
+    best_model = ensemble.models[best_model_name]
+    
+    if best_model_name == 'ARIMA':
+        forecast, conf = best_model.forecast(Config.FORECAST_HORIZON)
+    elif best_model_name == 'Prophet':
+        forecast, conf_lower, conf_upper = best_model.forecast(Config.FORECAST_HORIZON)
+        conf = pd.DataFrame({'lower': conf_lower, 'upper': conf_upper})
+    
+    future_dates = pd.date_range(start=monthly_series.index[-1] + pd.DateOffset(months=1),
+                                periods=Config.FORECAST_HORIZON, freq='MS')
+    
+    forecast_df = pd.DataFrame({
+        'date': future_dates,
+        'forecast': forecast,
+        'ci_lower': conf.iloc[:, 0] if 'lower' not in conf.columns else conf['lower'],
+        'ci_upper': conf.iloc[:, 1] if 'upper' not in conf.columns else conf['upper']
+    })
+    
+    print(f"\nUsing: {best_model_name}")
+    print(forecast_df.to_string(index=False))
+    forecast_df.to_csv(Config.OUTPUT_DIR / 'phase3_forecast_12m.csv', index=False)
+    
+    # Forecast by make
+    print("\n" + "="*70)
+    print("FORECAST BY TOP MAKES")
+    print("="*70)
+    
+    by_make_forecasts = []
+    for make, series in by_make.items():
+        try:
+            arima = ARIMAForecaster(auto_optimize=True)
+            arima.fit(series)
+            forecast, _ = arima.forecast(Config.FORECAST_HORIZON)
+            
+            by_make_forecasts.append({
+                'make': make,
+                'current_avg_12m': series.tail(12).mean(),
+                'forecast_next_12m_avg': forecast.mean(),
+                'forecast_trend': 'Up' if forecast.mean() > series.tail(12).mean() else 'Down'
+            })
+            print(f"  {make:20} → {forecast.mean():.0f} avg (trend: {by_make_forecasts[-1]['forecast_trend']})")
+        except Exception as e:
+            print(f"  {make:20} → Failed: {e}")
+    
+    by_make_df = pd.DataFrame(by_make_forecasts)
+    by_make_df.to_csv(Config.OUTPUT_DIR / 'phase3_forecast_by_make.csv', index=False)
+    
+    # Visualizations
+    print("\n" + "="*70)
+    print("GENERATING VISUALIZATIONS")
+    print("="*70)
+    
+    Visualizer.plot_model_comparison(train_series, test_series, ensemble.test_results)
+    Visualizer.plot_forecast_horizon(monthly_series, best_model, Config.FORECAST_HORIZON, best_model_name)
+    
+    # Summary report
+    print("\n" + "="*70)
+    print("PHASE 3 COMPLETE ✓")
+    print("="*70)
+    
+    summary = {
+        'execution_date': datetime.now().isoformat(),
+        'data_period': f"{monthly_series.index.min().date()} to {monthly_series.index.max().date()}",
+        'observations': len(monthly_series),
+        'best_model': best_model_name,
+        'best_model_mae': float(comparison_df.iloc[0]['MAE']),
+        'forecast_horizon': Config.FORECAST_HORIZON,
+        'forecast_average': float(forecast_df['forecast'].mean()),
+        'files_created': [
+            'phase3_model_comparison.png',
+            f'phase3_{best_model_name.lower()}_forecast.png',
+            'phase3_model_comparison.csv',
+            'phase3_forecast_12m.csv',
+            'phase3_forecast_by_make.csv'
+        ]
+    }
+    
+    with open(Config.RESULTS_DIR / 'phase3_summary.json', 'w') as f:
+        json.dump(summary, f, indent=2)
+    
+    print(f"\nSummary saved: {Config.RESULTS_DIR / 'phase3_summary.json'}")
 
-recent_12 <- transfer_top_makes %>%
-  filter(data_month_year > latest_date %m-% months(12)) %>%
-  group_by(make_standard, model_clean) %>%
-  summarise(recent_transfers = sum(TOTAL, na.rm = TRUE), .groups = "drop")
-
-previous_12 <- transfer_top_makes %>%
-  filter(
-    data_month_year > latest_date %m-% months(24),
-    data_month_year <= latest_date %m-% months(12)
-  ) %>%
-  group_by(make_standard, model_clean) %>%
-  summarise(previous_transfers = sum(TOTAL, na.rm = TRUE), .groups = "drop")
-
-# Growth analysis
-model_growth <- recent_12 %>%
-  left_join(previous_12, by = c("make_standard", "model_clean")) %>%
-  mutate(
-    growth = (recent_transfers - previous_transfers) / previous_transfers * 100,
-    vehicle = paste(make_standard, model_clean)
-  ) %>%
-  filter(!is.na(growth), previous_transfers > 0)
-
-
-# Visualization 
-# Monthly transfer volume trend
-ggplot(used_monthly, aes(x = data_month_year, y = transfers)) +
-  geom_line(linewidth = 1) +
-  labs(
-    title = "Monthly Used Vehicle Transfers",
-    subtitle = "Top 95% makes, vehicles manufactured 2010+",
-    x = NULL,
-    y = "Number of transfers"
-  ) +
-  scale_y_continuous(labels = comma) +
-  theme_minimal()
-
-ggsave("outputs/PDFs/01_monthly_transfers.pdf", width = 10, height = 6)
-
-# Top 15 makes
-ggplot(top_makes, aes(x = reorder(make_standard, transfers), y = transfers)) +
-  geom_col() +
-  coord_flip() +
-  labs(
-    title = "Top 15 Vehicle Makes by Transfers",
-    x = NULL,
-    y = "Total transfers"
-  ) +
-  scale_y_continuous(labels = comma) +
-  theme_minimal()
-
-ggsave("outputs/PDFs/02_top_makes.pdf", width = 10, height = 6)
-
-# Top 20 models
-ggplot(top_models, aes(x = reorder(vehicle, transfers), y = transfers)) +
-  geom_col() +
-  coord_flip() +
-  labs(
-    title = "Top 20 Vehicle Models by Transfers",
-    x = NULL,
-    y = "Total transfers"
-  ) +
-  scale_y_continuous(labels = comma) +
-  theme_minimal()
-
-ggsave("outputs/PDFs/03_top_models.pdf", width = 10, height = 6)
-
-# Top 5 models trends over time
-top_5_models <- transfer_top_makes %>%
-  group_by(make_standard, model_clean) %>%
-  summarise(transfers = sum(TOTAL, na.rm = TRUE), .groups = "drop") %>%
-  arrange(desc(transfers)) %>%
-  slice_head(n = 5) %>%
-  mutate(vehicle = paste(make_standard, model_clean)) %>%
-  pull(vehicle)
-
-model_trends <- transfer_top_makes %>%
-  mutate(vehicle = paste(make_standard, model_clean)) %>%
-  filter(vehicle %in% top_5_models) %>%
-  group_by(data_month_year, vehicle) %>%
-  summarise(transfers = sum(TOTAL, na.rm = TRUE), .groups = "drop")
-
-ggplot(model_trends, aes(x = data_month_year, y = transfers, group = vehicle, colour = vehicle)) +
-  geom_line(linewidth = 0.8) +
-  labs(
-    title = "Transfer Trends - Top 5 Models",
-    x = NULL,
-    y = "Monthly transfers",
-    colour = "Vehicle"
-  ) +
-  scale_y_continuous(labels = comma) +
-  scale_colour_brewer(palette = "Set2") +
-  theme_minimal()
-
-ggsave("outputs/PDFs/04_top_5_trends.pdf", width = 10, height = 6)
-
-# Growth vs popularity
-ggplot(model_growth, aes(x = previous_transfers, y = growth)) +
-  geom_point(alpha = 0.5) +
-  labs(
-    title = "Growth vs Popularity",
-    subtitle = "Models with growth + activity = opportunity",
-    x = "Previous 12-month transfers",
-    y = "Growth (%)"
-  ) +
-  theme_minimal()
-
-ggsave("outputs/PDFs/05_growth_vs_popularity.pdf", width = 10, height = 6)
-
-# Vehicle age distribution
-age_distribution <- transfer_top_makes %>%
-  group_by(age_bucket) %>%
-  summarise(transfers = sum(TOTAL, na.rm = TRUE), .groups = "drop")
-
-ggplot(age_distribution, aes(x = age_bucket, y = transfers)) +
-  geom_col() +
-  labs(
-    title = "Used-Vehicle Transfers by Age",
-    x = "Vehicle age",
-    y = "Transfers"
-  ) +
-  scale_y_continuous(labels = comma) +
-  theme_minimal()
-
-ggsave("outputs/PDFs/06_age_distribution.pdf", width = 10, height = 6)
-
-# Age profile by major makes
-top_makes_list <- top_makes %>% pull(make_standard)
-
-age_by_make <- transfer_top_makes %>%
-  filter(make_standard %in% top_makes_list) %>%
-  group_by(make_standard, age_bucket) %>%
-  summarise(transfers = sum(TOTAL, na.rm = TRUE), .groups = "drop") %>%
-  group_by(make_standard) %>%
-  mutate(percentage = transfers / sum(transfers) * 100) %>%
-  ungroup()
-
-ggplot(age_by_make, aes(x = make_standard, y = percentage, fill = age_bucket)) +
-  geom_col(position = "stack") +
-  coord_flip() +
-  labs(
-    title = "Vehicle Age Distribution by Make",
-    subtitle = "Top 15 makes - age composition of transfers",
-    x = NULL,
-    y = "Share of transfers (%)",
-    fill = "Vehicle Age"
-  ) +
-  scale_fill_brewer(palette = "RdYlBu", direction = -1) +
-  theme_minimal()
-
-ggsave("outputs/PDFs/07_age_by_make.pdf", width = 10, height = 6)
-
-# New vehicle registrations trend
-new_monthly <- new_top_makes %>%
-  group_by(data_month_year) %>%
-  summarise(registrations = sum(TOTAL, na.rm = TRUE), .groups = "drop")
-
-ggplot(new_monthly, aes(x = data_month_year, y = registrations)) +
-  geom_line(linewidth = 1) +
-  labs(
-    title = "Monthly New Vehicle Registrations",
-    subtitle = "Top 95% makes",
-    x = NULL,
-    y = "New registrations"
-  ) +
-  scale_y_continuous(labels = comma) +
-  theme_minimal()
-
-ggsave("outputs/PDFs/08_new_registrations.pdf", width = 10, height = 6)
-
-# Summary reports 
-# Market share summary - transfers
-transfer_summary <- transfer_top_makes %>%
-  group_by(make_standard) %>%
-  summarise(
-    total_transfers = sum(TOTAL, na.rm = TRUE),
-    avg_age = mean(vehicle_age, na.rm = TRUE),
-    models = n_distinct(model_clean),
-    .groups = "drop"
-  ) %>%
-  arrange(desc(total_transfers)) %>%
-  mutate(market_share_pct = round(total_transfers / sum(total_transfers) * 100, 2))
-
-print("\nTransfer Market Summary (Top 20):")
-print(head(transfer_summary, 20))
-
-# New vehicle summary
-new_summary <- new_top_makes %>%
-  group_by(make_standard) %>%
-  summarise(
-    total_registrations = sum(TOTAL, na.rm = TRUE),
-    models = n_distinct(model_clean),
-    .groups = "drop"
-  ) %>%
-  arrange(desc(total_registrations)) %>%
-  mutate(market_share_pct = round(total_registrations / sum(total_registrations) * 100, 2))
-
-print("\nNew Vehicle Summary (Top 20):")
-print(head(new_summary, 20))
-
-# Save key datasets
-write_csv(transfer_summary, "outputs/CSVs/01_transfer_make_summary.csv")
-write_csv(new_summary, "outputs/CSVs/02_new_vehicle_summary.csv")
-write_csv(model_growth, "outputs/CSVs/03_model_growth_analysis.csv")
-write_csv(new_yearly, "outputs/CSVs/04_new_registrations_yearly.csv")
-write_csv(top_models, "outputs/CSVs/05_top_20_models.csv")
+if __name__ == "__main__":
+    main()
