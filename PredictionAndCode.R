@@ -9,8 +9,8 @@ library(gt)
 library(stringr)
 
 # Import Data
-new_vehicles <- read_csv("monthly_new.csv")
-transfer_vehicles <- read_csv("monthly_transfers.csv")
+new_vehicles <- read_csv("Raw_Datasets/monthly_new_vehicle_registration_may2023_2026.csv")
+transfer_vehicles <- read_csv("Raw_Datasets/monthly_vehicle_transfers_may2023_2026.csv")
 
 # View a breakdown of the vehicles 
 type_vehicles <- new_vehicles %>%

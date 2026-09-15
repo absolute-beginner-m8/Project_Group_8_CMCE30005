@@ -521,3 +521,11 @@ write_csv(new_summary, "outputs/CSVs/02_new_vehicle_summary.csv")
 write_csv(model_growth, "outputs/CSVs/03_model_growth_analysis.csv")
 write_csv(new_yearly, "outputs/CSVs/04_new_registrations_yearly.csv")
 write_csv(top_models, "outputs/CSVs/05_top_20_models.csv")
+
+# Export time-series (for XGBoost/forecasting)
+transfer_timeseries <- transfer_final %>%
+  group_by(data_month_year) %>%
+  summarise(total_transfers = sum(TOTAL, na.rm = TRUE), .groups = "drop") %>%
+  arrange(data_month_year)
+
+write_csv(transfer_timeseries, "outputs/CSVs/transfers_cleaned_timeseries.csv")
