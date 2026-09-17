@@ -9,8 +9,8 @@ library(gt)
 library(stringr)
 
 # Import Data
-new_vehicles <- read_csv("Raw_Datasets/monthly_new_vehicle_registration_may2023_2026.csv")
-transfer_vehicles <- read_csv("Raw_Datasets/monthly_vehicle_transfers_may2023_2026.csv")
+new_vehicles <- read_csv("monthly_new.csv")
+transfer_vehicles <- read_csv("monthly_transfers.csv")
 
 # View a breakdown of the vehicles 
 type_vehicles <- new_vehicles %>%
@@ -2971,5 +2971,157 @@ rf_change_ranking <- future_forecasts %>%
     change_6m
   )
 
-head(rf_change_ranking, 20)
+head(rf_change_ranking, 20) 
 
+
+
+rf_change_ranking <- rf_change_ranking %>%
+  mutate(
+    model_clean = case_when(
+      make_standard == "TESLA" &
+        model_clean %in% c("MY LR", "MYL LR") ~ "MY LR",
+      TRUE ~ model_clean
+    )
+  ) %>%
+  group_by(make_standard, model_clean) %>%
+  summarise(
+    rolling_6m = sum(rolling_6m, na.rm = TRUE),
+    rf_predicted_6m = sum(rf_predicted_6m, na.rm = TRUE),
+    change_6m = sum(change_6m, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(change_6m)) %>%
+  mutate(rank = row_number()) %>%
+  select(
+    rank,
+    make_standard,
+    model_clean,
+    rolling_6m,
+    rf_predicted_6m,
+    change_6m
+  )
+
+
+linear_change_ranking <- linear_change_ranking %>%
+  mutate(
+    model_clean = case_when(
+      make_standard == "TESLA" &
+        model_clean %in% c("MY LR", "MYL LR") ~ "MY LR",
+      TRUE ~ model_clean
+    )
+  ) %>%
+  group_by(make_standard, model_clean) %>%
+  summarise(
+    rolling_6m = sum(rolling_6m, na.rm = TRUE),
+    linear_predicted_6m = sum(linear_predicted_6m, na.rm = TRUE),
+    change_6m = sum(change_6m, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(change_6m)) %>%
+  mutate(rank = row_number()) %>%
+  select(
+    rank,
+    make_standard,
+    model_clean,
+    rolling_6m,
+    linear_predicted_6m,
+    change_6m
+  )
+
+head(rf_change_ranking, 20) 
+
+head(linear_change_ranking, 20)
+
+write.csv(
+  rf_change_ranking,
+  "rf_change_ranking.csv",
+  row.names = FALSE
+)
+
+write.csv(
+  linear_change_ranking,
+  "linear_change_ranking.csv",
+  row.names = FALSE
+)
+
+# Graph for random forest
+rf_plot <- rf_change_ranking %>%
+  slice_head(n = 20) %>%
+  mutate(
+    vehicle = paste(make_standard, model_clean, sep = " ")
+  ) %>%
+  ggplot(aes(
+    x = reorder(vehicle, change_6m),
+    y = change_6m,
+    fill = change_6m
+  )) +
+  geom_col() +
+  coord_flip() +
+  scale_fill_gradient(
+    low = "skyblue",
+    high = "darkblue"
+  ) +
+  labs(
+    title = "Random Forest: Predicted 6-Month Demand Increase",
+    subtitle = "Top 20 vehicle models",
+    x = "Vehicle",
+    y = "Predicted increase in transfers",
+    fill = "Increase"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", size = 16),
+    plot.subtitle = element_text(size = 11),
+    legend.position = "right"
+  )
+
+rf_plot
+
+ggsave(
+  "rf_change_ranking.pdf",
+  rf_plot,
+  width = 10,
+  height = 8,
+  dpi = 300
+)
+
+# Graph for linear
+linear_plot <- linear_change_ranking %>%
+  slice_head(n = 20) %>%
+  mutate(
+    vehicle = paste(make_standard, model_clean, sep = " ")
+  ) %>%
+  ggplot(aes(
+    x = reorder(vehicle, change_6m),
+    y = change_6m,
+    fill = change_6m
+  )) +
+  geom_col() +
+  coord_flip() +
+  scale_fill_gradient(
+    low = "lightgreen",
+    high = "darkgreen"
+  ) +
+  labs(
+    title = "Linear Regression: Predicted 6-Month Demand Increase",
+    subtitle = "Top 20 vehicle models",
+    x = "Vehicle",
+    y = "Predicted increase in transfers",
+    fill = "Increase"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", size = 16),
+    plot.subtitle = element_text(size = 11),
+    legend.position = "right"
+  )
+
+linear_plot
+
+ggsave(
+  "linear_change_ranking.pdf",
+  linear_plot,
+  width = 10,
+  height = 8,
+  dpi = 300
+)
