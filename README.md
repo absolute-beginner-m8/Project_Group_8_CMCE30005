@@ -1,78 +1,58 @@
-# CMCE30005 Business Analytics Challenge
-## Project_Group_8_CMCE30005 - Australian Vehicle Market Analysis
+# CMCE30005 Business Analytics Challenge: Australian Vehicle Market Analysis
 
 **Subject:** CMCE30005 Business Analytics Challenge, Semester 2 2026  
 **University:** University of Melbourne  
-**Team Members:** Sabrina Nguyen, Thomas Haikal, Rutvi Tolani, Suhan Wang
+**Team:** Sabrina Nguyen, Thomas Haikal, Rutvi Tolani, Suhan Wang  
+**Last Updated:** August 2026
+
+---
+
+## Overview
+
+This project analyzes the Australian vehicle registration and transfer market (May 2023–2026) to identify market trends, dominant makes/models, growth patterns, and age-based valuation signals. The analysis supports strategic inventory planning and pricing decisions for automotive stakeholders expanding into unfamiliar markets.
 
 ---
 
 ## Business Problem
 
-<<<<<<< HEAD
-#Business Problem & Project Objectives Our client operates multiple Queensland dealerships and is expanding into Melbourne. They need to decide how to split investment between new-vehicle and used-vehicle stock, and which makes/models to prioritise in each, to maximise inventory turnover and avoid overstocking slow-moving segments in an unfamiliar market.
-
-=======
-Analyze the Australian vehicle registration and transfer market 
-(May 2023 - 2026) to identify market trends, dominant vehicle makes/models, 
-growth patterns, and age-based valuation signals. 
-This analysis supports market forecasting and vehicle pricing strategy 
-for stakeholders in the automotive industry.
->>>>>>> 4281f1cd943b1b5efe619271dd8bbf760daec176
+Our client operates multiple Queensland dealerships and is expanding into Melbourne. They need to:
+- Decide how to split investment between new-vehicle and used-vehicle stock
+- Identify which makes/models to prioritize in each segment
+- Maximize inventory turnover and avoid overstocking slow-moving segments
 
 ---
 
-## Dataset
+## Data
 
-<<<<<<< HEAD
-=======
-**Dataset name:** Australian Monthly Vehicle Registration & Transfers (May 2023 - 2026)  
-**Source:** Australian vehicle registration records  
-**Coverage:** New vehicle registrations and used vehicle transfers across Australia
->>>>>>> 4281f1cd943b1b5efe619271dd8bbf760daec176
-
-# Install (only needs to run once)
-install.packages(c("dplyr", "tidyr", "ggplot2", "readr", "lubridate", "stringr", "forecast"))
-
-<<<<<<< HEAD
-# Load (run every session)
-library(dplyr)
-library(tidyr)
-library(ggplot2)
-library(readr)
-library(lubridate)
-library(stringr)
-library(forecast)
-
-glimpse(monthly_new_vehicle_registration)
-
-=======
 | File | Description | Size |
 |------|-------------|------|
 | `monthly_new_vehicle_registration_may2023_2026.csv` | New vehicle registrations by make/model | ~4.9 MB |
 | `monthly_vehicle_transfers_may2023_2026.csv` | Used vehicle transfers by make/model | ~32.9 MB |
 | `complete_vehicle_mapping.csv` | 862 vehicle make standardization mappings | ~19.2 KB |
 
-**Note:** Data files are stored locally in `Raw_Datasets/` folder. Not committed to GitHub due to size.
+**Location:** Raw_Datasets/ folder (local only, not committed to GitHub due to size)  
+**Coverage:** ~1M transfers + ~155k new registrations (2010+ models, top 95% market share)
 
 ---
 
-## Analysis Overview
+## What's Included
 
-### Completed Work
-
-**Data Cleaning & Standardization**
+### Data Cleaning & Standardization
 - Pre-cleaning of vehicle codes (spacing, capitalization, special characters)
-- 862-make reference mapping for standardization
+- 862-make reference mapping for consistency
 - Fuzzy matching for typo resolution (Levenshtein distance, 0.7+ threshold)
+- <5% unmatched codes after processing
 
-**Market Analysis**
+### Market Analysis
 - Top 15 vehicle makes by transfer volume
 - Top 20 vehicle models ranking
 - Market share calculations
 - Year-over-year growth analysis
+- Seasonality patterns in registrations
 
-**Visualizations** (8 PDFs)
+### Outputs
+
+**8 PDF Visualizations:**
 1. Monthly transfer volume trends
 2. Top 15 makes ranking
 3. Top 20 models ranking
@@ -82,12 +62,49 @@ glimpse(monthly_new_vehicle_registration)
 7. Age composition by make
 8. New vehicle registration trends
 
-**Summary Reports** (5 CSVs)
+**5 CSV Summary Reports:**
 1. Transfer market share by make (avg age, model count)
 2. New vehicle market share by make
 3. Model growth analysis (12-month momentum)
 4. Year-over-year registration data
 5. Top 20 models ranking
+
+All outputs saved to `outputs/` folder.
+
+---
+
+## Quick Start
+
+### Prerequisites
+Install R packages:
+```r
+install.packages(c("dplyr", "tidyverse", "lubridate", "quantmod",
+                   "tidyr", "ggplot2", "scales", "gt", "stringdist"))
+```
+
+### Run Analysis
+```r
+setwd("~/Project_Group_8_CMCE30005")
+source("R scripts/Suhan_vehicle_analysis.R")
+```
+
+This will:
+1. Load and clean raw datasets
+2. Apply standardization mappings
+3. Generate all visualizations (PDFs)
+4. Export summary reports (CSVs)
+
+**Outputs location:** `outputs/PDFs/` and `outputs/CSVs/`
+
+---
+
+## Key Findings
+
+- **Market concentration:** Top 15 makes account for ~80% of transfers
+- **Growth trends:** Electric vehicles and Asian brands showing strong momentum
+- **Age profile:** Average transfer vehicle is 7–9 years old (key depreciation signal)
+- **Seasonality:** Registration volume peaks in Q1 and Q4
+- **Model diversity:** Top 20 models represent ~40% of market, indicating strong tail
 
 ---
 
@@ -96,73 +113,49 @@ glimpse(monthly_new_vehicle_registration)
 ```
 Project_Group_8_CMCE30005/
 ├── R scripts/
-│   └── Suhan_vehicle_analysis.R          # Main analysis workflow
-├── Raw_Datasets/                         # Raw data (local only, not on GitHub)
+│   └── Suhan_vehicle_analysis.R          # Main analysis pipeline
+├── Raw_Datasets/                         # Raw data (local only)
 │   ├── monthly_new_vehicle_registration_may2023_2026.csv
 │   ├── monthly_vehicle_transfers_may2023_2026.csv
 │   └── complete_vehicle_mapping.csv
 ├── outputs/
 │   ├── PDFs/                             # 8 visualizations
-│   │   ├── 01_monthly_transfers.pdf
-│   │   ├── 02_top_makes.pdf
-│   │   └── ... (6 more)
 │   └── CSVs/                             # 5 summary reports
-│       ├── 01_transfer_make_summary.csv
-│       ├── 02_new_vehicle_summary.csv
-│       └── ... (3 more)
+├── Presentation/                         # Presentation slides
 ├── README.md
+├── requirements.txt
 └── .gitignore
 ```
-
----
-
-## How to Use
-
-### Prerequisites
-
-Install R packages:
-```r
-install.packages(c("dplyr", "tidyverse", "lubridate", "quantmod", 
-                   "tidyr", "ggplot2", "scales", "gt", "stringdist"))
-```
-
-### Running the Analysis
-
-1. **Get the data files:**
-   - Place `monthly_new_vehicle_registration_may2023_2026.csv`
-   - Place `monthly_vehicle_transfers_may2023_2026.csv`
-   - Place `complete_vehicle_mapping.csv`
-   - All in `Raw_Datasets/` folder
-
-2. **Run the script:**
-   ```r
-   setwd("~/Project_Group_8_CMCE30005")
-   source("R scripts/Suhan_vehicle_analysis.R")
-   ```
-
-3. **Access outputs:**
-   - PDFs: `outputs/PDFs/`
-   - CSVs: `outputs/CSVs/`
-
----
-
-## Key Findings
-
-- **Market concentration:** Top 15 makes account for ~80% of transfers
-- **Growth trends:** Electric vehicles and Asian brands showing strong momentum
-- **Age profile:** Average transfer vehicle age is 7-9 years (depreciation signal)
-- **Seasonality:** Registration volume peaks in specific months (Q1/Q4 patterns)
 
 ---
 
 ## Technical Notes
 
 - **Data cleaning pipeline:** Raw code standardization → mapping table join → fuzzy matching for unknowns
-- **Coverage:** Vehicles manufactured 2010+, top 95% market share makes (removes niche outliers)
-- **Records processed:** ~1M transfers + ~155k new registrations
-- **Unmatched codes:** <5% after standardization & fuzzy matching
+- **Coverage:** Vehicles manufactured 2010+, top 95% market share makes (outliers removed)
+- **Language:** R (data manipulation, visualization, time-series analysis)
+- **Matching accuracy:** >95% after standardization and fuzzy matching
 
 ---
 
-*Last updated: 29 August 2026*
->>>>>>> 4281f1cd943b1b5efe619271dd8bbf760daec176
+## Running Individual Scripts
+
+The project uses a modular R structure. Key scripts:
+
+- `R scripts/Suhan_vehicle_analysis.R` — Main analysis workflow
+- `export_cleaned_records.R` — Export cleaned datasets
+- `export_timeseries_simple.R` — Time-series data export
+- `fix_columns.R` — Column structure fixes
+- `PredictionAndCode.R` — Predictive modeling (Phase 3)
+
+For Python forecasting:
+- `phase_3_forecasting.py` — ARIMA/Prophet forecasting
+- `phase4_recommendations.py` — Strategic recommendations
+
+---
+
+## Contact
+
+For questions about the analysis or methodology, contact the team via the University of Melbourne CMCE30005 channel.
+
+Last updated: 17th Sep 2026
