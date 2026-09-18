@@ -9,7 +9,7 @@
 
 ## Overview
 
-This project analyzes the Australian vehicle registration and transfer market (May 2023–2026) to identify market trends, dominant makes/models, growth patterns, and age-based valuation signals. The analysis supports strategic inventory planning and pricing decisions for automotive stakeholders expanding into unfamiliar markets.
+This project analyses the Australian vehicle registration and transfer market (May 2023–2026) to identify market trends, dominant makes/models, growth patterns, and age-based valuation signals. The analysis supports strategic inventory planning for automotive stakeholders expanding into unfamiliar markets. This is done by predicting the future demand over the next 6 months for the car makes and models, and is predicted using linear regression, random forests and XGBoost. 
 
 ---
 
