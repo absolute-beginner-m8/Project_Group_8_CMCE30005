@@ -61,6 +61,8 @@ Our client operates multiple Queensland dealerships and is expanding into Melbou
 6. Vehicle age distribution
 7. Age composition by make
 8. New vehicle registration trends
+9. Linear regression rankings
+10. Random forest rankings
 
 **5 CSV Summary Reports:**
 1. Transfer market share by make (avg age, model count)
@@ -68,8 +70,11 @@ Our client operates multiple Queensland dealerships and is expanding into Melbou
 3. Model growth analysis (12-month momentum)
 4. Year-over-year registration data
 5. Top 20 models ranking
+6. Linear regression full list of change in demand (all makes and models)
+7. Random forest full list of change in demand (all makes and models)
 
-All outputs saved to `outputs/` folder.
+Outputs saved to `outputs/` and `Output_results/` folder.
+
 
 ---
 
@@ -105,6 +110,7 @@ This will:
 - **Age profile:** Average transfer vehicle is 7–9 years old (key depreciation signal)
 - **Seasonality:** Registration volume peaks in Q1 and Q4
 - **Model diversity:** Top 20 models represent ~40% of market, indicating strong tail
+- **Change in demand:** We can see that electric cars are predicted to have largest change in demand in the next 6 months 
 
 ---
 
@@ -122,6 +128,12 @@ Project_Group_8_CMCE30005/
 │   ├── PDFs/                             # 8 visualizations
 │   └── CSVs/                             # 5 summary reports
 ├── Presentation/                         # Presentation slides
+├── Test_Folder/
+│   ├── AnalyticsPart.R                   # Look at 6 month future predicted demand         
+│   └── PredictionAndCode.R               # Look at 6 month future predicted demand
+├── Output_results/                       # Output of the change in demand as a csv for both linear and random forests
+│   ├── linear_change_ranking.csv
+│   ├── rf_change_ranking.csv
 ├── README.md
 ├── requirements.txt
 └── .gitignore
@@ -132,8 +144,8 @@ Project_Group_8_CMCE30005/
 ## Technical Notes
 
 - **Data cleaning pipeline:** Raw code standardization → mapping table join → fuzzy matching for unknowns
-- **Coverage:** Vehicles manufactured 2010+, top 95% market share makes (outliers removed)
-- **Language:** R (data manipulation, visualization, time-series analysis)
+- **Coverage:** Vehicles manufactured 2010+, top 95% market share makes and models (outliers removed)
+- **Language:** R (data manipulation, visualization, time-series analysis, linear regression, random forest)
 - **Matching accuracy:** >95% after standardization and fuzzy matching
 
 ---
@@ -146,7 +158,7 @@ The project uses a modular R structure. Key scripts:
 - `export_cleaned_records.R` — Export cleaned datasets
 - `export_timeseries_simple.R` — Time-series data export
 - `fix_columns.R` — Column structure fixes
-- `PredictionAndCode.R` — Predictive modeling (Phase 3)
+- `PredictionAndCode.R` — Predictive modeling for make and model (Phase 3)
 
 For Python forecasting:
 - `phase_3_forecasting.py` — ARIMA/Prophet forecasting
