@@ -43,8 +43,3 @@ Inputs for the Python scripts are in `../outputs/CSVs/` (made by `export_cleaned
 - Backtest chart shows the last 12 months of training data, actual test values, and the multi-step ARIMA and XGBoost forecasts. The 1-step results are in the comparison table and bar chart.
 - ARIMA uses order (1,1,1) with a seasonal term (1,0,0,12), set in `Config`.
 - The future 6-month forecast uses the best multi-step model (currently XGBoost).
-
-## Known issues
-
-- `PredictionAndCode_Refactored.R` line 27 points to `monthly_transfers_may2023_2026.csv`; the real file is `monthly_vehicle_transfers_may2023_2026.csv`.
-- `refactored_analysis_visualization.R` looks like an earlier copy of `Suhan_vehicle_analysis_Refactored.R`. Use the latter.

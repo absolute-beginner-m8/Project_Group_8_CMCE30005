@@ -1,4 +1,4 @@
-# CMCE30005 Business Analytics Challenge: Australian Vehicle Market Analysis
+# CMCE30005 Business Analytics Challenge: Final Report
 
 **Subject:** CMCE30005 Business Analytics Challenge, Semester 2 2026
 **University:** University of Melbourne
@@ -7,48 +7,93 @@
 
 ---
 
-## Overview
+## Project Summary
 
-We analyse Australian vehicle registrations and transfers (May 2023 to mid 2026) to find market trends, dominant makes and models, and where demand is heading over the next 6 months. The results support stock planning for a dealership group.
+We analyse Australian vehicle registrations and transfers (May 2023 to mid 2026) for a Queensland dealership group expanding into Melbourne. The client needs to:
+- split investment between new and used stock
+- pick which makes and models to prioritise in each segment
+- avoid overstocking slow movers
 
-The work has four stages:
+The analysis runs in four phases, from raw data to stocking recommendations. Everything for the report is in `final report/`; its `README.md` lists every file.
 
-1. **Clean and explore (R):** standardise make names, build market summaries and charts.
-2. **Make/model demand ranking (R):** linear regression, decision tree, random forest, XGBoost (and a neural net) predict the 6-month change in demand for each make and model.
-3. **Total-market forecast (Python):** ARIMA vs XGBoost on monthly total transfers, 6-month horizon.
-4. **Recommendations (Python):** new vs used split, makes and models to stock, what is trending now.
-
-The **final report material lives in `final report/`**. Start with `final report/README.md`.
-
----
-
-## Business Problem
-
-Our client runs Queensland dealerships and is expanding into Melbourne. They need to:
-- Decide how to split investment between new and used stock
-- Pick which makes and models to prioritise in each segment
-- Maximise turnover and avoid overstocking slow movers
+```
+Raw data → Phase 1 Cleaning → Phase 2 Market analysis → Phase 3 Predictive modelling → Phase 4 Recommendations
+```
 
 ---
 
-## Data
+## Phase 1: Data Cleaning and Standardisation
 
-| File | Description | Size |
-|------|-------------|------|
-| `monthly_new_vehicle_registration_may2023_2026.csv` | New vehicle registrations by make/model | ~4.9 MB |
-| `monthly_vehicle_transfers_may2023_2026.csv` | Used vehicle transfers by make/model | ~32.9 MB |
-| `complete_vehicle_mapping.csv` | 862 make standardisation mappings | ~19.2 KB |
+**Goal:** turn the raw files into one consistent dataset.
 
-**Location:** `Raw_Datasets/` (local only, not committed to GitHub because of size)
-**Coverage:** about 1M transfers and 155k new registrations (2010+ models, top 95% market share)
+| Input (`Raw_Datasets/`) | Description |
+|---|---|
+| `monthly_new_vehicle_registration_may2023_2026.csv` | New vehicle registrations by make/model |
+| `monthly_vehicle_transfers_may2023_2026.csv` | Used vehicle transfers by make/model |
+| `complete_vehicle_mapping.csv` | 862 make standardisation mappings |
 
-Cleaning: code pre-cleaning (spacing, case, special characters), the 862-make mapping, then fuzzy matching (Levenshtein, 0.7+ threshold). Under 5% of codes stay unmatched.
+**Steps**
+1. Pre-clean vehicle codes (spacing, capitalisation, special characters).
+2. Join the 862-make mapping table.
+3. Fuzzy-match any remaining unknown codes (Levenshtein distance, 0.7+ threshold). Under 5% of codes stay unmatched.
+4. Keep vehicles from 2010 onwards, drop missing models, keep makes and models making up the top 95% of market share.
+5. Add vehicle age as a feature.
+6. Export cleaned records and the monthly time series for the Python phases.
+
+**Scripts:** `final report/Suhan_vehicle_analysis_Refactored.R` (cleaning and standardisation section), `export_cleaned_records.R`, `export_timeseries_simple.R`
+**Output:** `outputs/CSVs/` (`transfers_cleaned_records.csv`, `registrations_cleaned_records.csv`, `transfers_cleaned_timeseries.csv`)
+**Coverage after cleaning:** about 1M transfers and 155k new registrations.
 
 ---
 
-## Results So Far
+## Phase 2: Market Analysis
 
-**Total-market forecast (Phase 3, test set, monthly transfers)**
+**Goal:** describe the current market and its trends.
+
+- Monthly transfer volume and seasonality
+- Top 15 makes and top 20 models by transfers, with market share
+- Year-over-year growth in new registrations and 12-month momentum by model
+- Vehicle age distribution and age mix by make
+- Growth vs popularity by model
+
+**Script:** `final report/Suhan_vehicle_analysis_Refactored.R`
+**Outputs:** 8 charts in `final report/Graphs/R_Plots_PDF/` and 5 summary tables in `final report/Data_Outputs/CSV/` (`01_transfer_make_summary.csv` to `05_top_20_models.csv`)
+
+**Findings**
+- Top 15 makes account for about 80% of transfers.
+- The average transferred vehicle is 7 to 9 years old.
+- Registration volume peaks in Q1 and Q4.
+- Toyota is the largest make in used transfers (15.3% share), followed by Ford (8.7%).
+
+---
+
+## Phase 3: Predictive Modelling
+
+Two models answer two questions: which makes and models will change most, and where total market volume is heading.
+
+### 3a. Make and model demand (R)
+
+Linear regression, decision tree, random forest, XGBoost and a neural net predict the 6-month change in demand for every make and model.
+
+**Script:** `final report/PredictionAndCode_Refactored.R`
+**Outputs:** `final report/Data_Outputs/CSV/linear_change_ranking.csv`, `rf_change_ranking.csv`, ranking charts in `final report/Graphs/R_Plots_PDF/`, and `final report/Reports/model_performance_comparison.html`
+
+| Model | MAE | RMSE |
+|---|---|---|
+| Linear Regression | 18.61 | 60.14 |
+| Random Forest | 18.76 | 65.94 |
+| Baseline | 24.50 | 81.03 |
+| XGBoost | 20.78 | 82.02 |
+| Decision Tree | 94.19 | 198.73 |
+
+**Findings:** electric vehicles show the largest predicted change in demand. Top of the random forest ranking: Ford Ranger, Tesla Model Y RWD and BYD Sealion. The linear model ranks Tesla Model Y LR, BYD Sealion and Tesla Model Y RWD highest.
+
+### 3b. Total-market forecast (Python)
+
+ARIMA vs XGBoost on monthly total transfers. The data is split 70/30 into train and test, and the better model is refit on all data to forecast the next 6 months.
+
+**Script:** `final report/phase_3_forecasting_refactored.py`
+**Outputs:** `final report/outputs/results/phase3_model_comparison.csv`, `final report/outputs/forecasts/phase3_forecast_6m.csv`, 3 charts in `final report/outputs/forecasts/charts/`
 
 | Model | MAE | RMSE |
 |---|---|---|
@@ -57,81 +102,50 @@ Cleaning: code pre-cleaning (spacing, case, special characters), the 862-make ma
 | ARIMA (1-step ahead) | 8,163 | 10,200 |
 | ARIMA (multi-step) | 9,609 | 12,245 |
 
-- XGBoost is best on every version, so it is used for the 6-month forecast.
-- ARIMA is the baseline. Over a multi-step horizon it flattens towards the last level, and the sharp monthly swings are not predictable from past values alone.
-- "1-step" means each month is predicted from the actual previous months. "Multi-step" predicts the whole test window from the end of training. The two are not like-for-like.
-
-**Make/model demand models (R, test set):** Linear Regression has the lowest error (MAE 18.61, RMSE 60.14), then Random Forest (18.76, 65.94), Baseline (24.50), XGBoost (20.78) and Decision Tree (94.19). See `final report/Reports/model_performance_comparison.html`.
-
-**New vs used (Phase 4):** over the last 12 months used transfers were 81.4% of volume and new registrations 18.6% (previous 12 months: 81.8% / 18.2%).
-
-**Other findings (from the R analysis):**
-- Top 15 makes account for about 80% of transfers
-- Average transferred vehicle is 7 to 9 years old
-- Registration volume peaks in Q1 and Q4
-- Electric vehicles are predicted to show the largest change in demand over the next 6 months
+- XGBoost has the lowest error on every version and produces the 6-month forecast.
+- ARIMA(1,1,1) with a seasonal term (1,0,0,12) is the baseline. Over a long horizon it flattens towards the last level.
+- "1-step" predicts each month from the actual previous months. "Multi-step" predicts the whole test window from the end of training. The two are not like-for-like.
 
 ---
 
-## Folder Structure
+## Phase 4: Stocking Recommendations
 
-```
-Project_Group_8_CMCE30005/
-├── final report/              # FINAL REPORT: scripts, charts, tables (see its README)
-│   ├── Graphs/                #   R PDFs and Python PNGs used in the report
-│   ├── Data_Outputs/CSV/      #   R result tables
-│   ├── Reports/               #   model comparison table (HTML)
-│   ├── outputs/               #   Python outputs (forecasts, results, charts)
-│   ├── _archive/              #   old script versions, backups, previous charts
-│   └── *.R, *.py              #   the scripts to run
-├── Raw_Datasets/              # raw data (local only)
-├── outputs/                   # cleaned datasets (CSVs/) and earlier outputs used as inputs
-├── Output_results/            # demand-change rankings (linear, random forest)
-├── Test_Folder/               # early exploration scripts and project brief
-├── Presentation/              # project plan slides
-├── export_cleaned_records.R   # writes outputs/CSVs/*_cleaned_records.csv
-├── export_timeseries_simple.R # writes outputs/CSVs/transfers_cleaned_timeseries.csv
-├── fix_columns.R
-├── visualization_theme.R
-├── requirements.txt
-└── README.md
-```
+**Goal:** turn the analysis into what to stock. This phase is descriptive, with no scoring.
+
+1. **New vs used split:** over the last 12 months used transfers were 81.4% of volume and new registrations 18.6% (previous 12 months: 81.8% / 18.2%).
+2. **Makes to stock, new cars:** share, year-over-year change and trend per make. Toyota (13.6%) and Ford (7.7%) lead but are down about 10% year on year, while BYD (7.0%) is up 171%.
+3. **Makes and models to stock, used cars:** Toyota (15.5%), Ford (8.3%) and Mazda (7.6%) lead. Toyota, Ford and Holden are trending down, and Mazda and Hyundai are flat.
+4. **Popular transfers right now** (last 3 months).
+5. **Popular new registrations right now** (last 3 months): Toyota, BYD, Ford, Kia, Hyundai.
+
+**Script:** `final report/phase4_recommendations_refactored.py`
+**Outputs:** `phase4_*.csv` in `final report/outputs/forecasts/` and charts in `final report/Graphs/Python_Charts_PNG/`
 
 ---
 
-## How To Run
+## Running the Pipeline
 
-Run everything from the `final report/` folder, because the scripts use relative paths (`../Raw_Datasets`, `../outputs/CSVs`).
+Run in this order. Python scripts and R scripts in `final report/` use relative paths, so run them from inside that folder.
 
-**1. Prepare cleaned data (R, from the project root)**
 ```r
+# Phase 1: cleaned data (from project root)
 setwd("~/Project_Group_8_CMCE30005")
 source("export_cleaned_records.R")
 source("export_timeseries_simple.R")
-```
 
-**2. R analysis (R / RStudio, working directory `final report/`)**
-```r
+# Phases 1-3a (from final report/)
 setwd("~/Project_Group_8_CMCE30005/final report")
-source("Suhan_vehicle_analysis_Refactored.R")   # cleaning, summaries, 8 charts
-source("PredictionAndCode_Refactored.R")        # ML demand models and rankings
+source("Suhan_vehicle_analysis_Refactored.R")
+source("PredictionAndCode_Refactored.R")
 ```
-R packages: dplyr, tidyverse, lubridate, quantmod, tidyr, ggplot2, scales, gt, stringdist.
-
-**3. Python (Terminal, inside `final report/`)**
 ```
-pip install pandas numpy matplotlib scikit-learn statsmodels xgboost
+# Phases 3b and 4 (Terminal, inside final report/)
 python phase_3_forecasting_refactored.py
 python phase4_recommendations_refactored.py
 ```
 
----
-
-## Known Issues
-
-- `PredictionAndCode_Refactored.R` (line 27) reads `monthly_transfers_may2023_2026.csv`, but the file is named `monthly_vehicle_transfers_may2023_2026.csv`. Fix the name before running.
-- `requirements.txt` lists `fbprophet`, which the current scripts do not use (Phase 3 compares ARIMA and XGBoost).
-- `final report/refactored_analysis_visualization.R` looks like an earlier copy of `Suhan_vehicle_analysis_Refactored.R`. Use the latter.
+R packages: dplyr, tidyverse, lubridate, quantmod, tidyr, ggplot2, scales, gt, stringdist.
+Python packages: pandas, numpy, matplotlib, scikit-learn, statsmodels, xgboost.
 
 ---
 
