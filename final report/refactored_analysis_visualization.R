@@ -9,11 +9,13 @@ library(scales)
 library(gt)
 library(stringdist)
 
+# Set working directory and load professional theme
+source("visualization_theme.R")
 
 # Now read files
-new_vehicles <- read_csv("Raw_Datasets/monthly_new_vehicle_registration_may2023_2026.csv")
-transfer_vehicles <- read_csv("Raw_Datasets/monthly_vehicle_transfers_may2023_2026.csv")
-make_mapping <- read_csv("Raw_Datasets/complete_vehicle_mapping.csv")
+new_vehicles <- read_csv("../Raw_Datasets/monthly_new_vehicle_registration_may2023_2026.csv")
+transfer_vehicles <- read_csv("../Raw_Datasets/monthly_vehicle_transfers_may2023_2026.csv")
+make_mapping <- read_csv("../Raw_Datasets/complete_vehicle_mapping.csv")
 
 # Data cleaning & Standardlization 
 clean_and_standardize <- function(data, make_mapping) {
@@ -339,50 +341,48 @@ model_growth <- recent_12 %>%
   filter(!is.na(growth), previous_transfers > 0)
 
 
-# Visualization 
-# Monthly transfer volume trend
-ggplot(used_monthly, aes(x = data_month_year, y = transfers)) +
-  geom_line(linewidth = 1) +
-  labs(
+# =========================================================
+# VISUALIZATION - REFACTORED WITH CONSISTENT BLUE THEME
+# =========================================================
+
+# 1. Monthly transfer volume trend (Time Series)
+monthly_transfers_plot <- used_monthly %>%
+  plot_time_series(
+    x_var = data_month_year,
+    y_var = transfers,
     title = "Monthly Used Vehicle Transfers",
-    subtitle = "Top 95% makes, vehicles manufactured 2010+",
-    x = NULL,
-    y = "Number of transfers"
-  ) +
-  scale_y_continuous(labels = comma) +
-  theme_minimal()
+    subtitle = "Top 95% makes, vehicles manufactured 2010+"
+  )
 
-ggsave("outputs/PDFs/01_monthly_transfers.pdf", width = 10, height = 6)
+export_plot(monthly_transfers_plot, "01_monthly_transfers.pdf", width = 10, height = 6)
 
-# Top 15 makes
-ggplot(top_makes, aes(x = reorder(make_standard, transfers), y = transfers)) +
-  geom_col() +
-  coord_flip() +
-  labs(
+# 2. Top 15 makes (Horizontal Bar Chart)
+top_makes_plot <- top_makes %>%
+  plot_horizontal_bars(
+    x_var = make_standard,
+    y_var = transfers,
+    fill_var = transfers,
     title = "Top 15 Vehicle Makes by Transfers",
-    x = NULL,
-    y = "Total transfers"
-  ) +
-  scale_y_continuous(labels = comma) +
-  theme_minimal()
+    subtitle = "Total transfers volume",
+    n_top = 15
+  )
 
-ggsave("outputs/PDFs/02_top_makes.pdf", width = 10, height = 6)
+export_plot(top_makes_plot, "02_top_makes.pdf", width = 10, height = 7)
 
-# Top 20 models
-ggplot(top_models, aes(x = reorder(vehicle, transfers), y = transfers)) +
-  geom_col() +
-  coord_flip() +
-  labs(
+# 3. Top 20 models (Horizontal Bar Chart)
+top_models_plot <- top_models %>%
+  plot_horizontal_bars(
+    x_var = vehicle,
+    y_var = transfers,
+    fill_var = transfers,
     title = "Top 20 Vehicle Models by Transfers",
-    x = NULL,
-    y = "Total transfers"
-  ) +
-  scale_y_continuous(labels = comma) +
-  theme_minimal()
+    subtitle = "Total transfers volume",
+    n_top = 20
+  )
 
-ggsave("outputs/PDFs/03_top_models.pdf", width = 10, height = 6)
+export_plot(top_models_plot, "03_top_models.pdf", width = 10, height = 9)
 
-# Top 5 models trends over time
+# 4. Top 5 models trends over time (Time Series with Groups)
 top_5_models <- transfer_top_makes %>%
   group_by(make_standard, model_clean) %>%
   summarise(transfers = sum(TOTAL, na.rm = TRUE), .groups = "drop") %>%
@@ -397,51 +397,49 @@ model_trends <- transfer_top_makes %>%
   group_by(data_month_year, vehicle) %>%
   summarise(transfers = sum(TOTAL, na.rm = TRUE), .groups = "drop")
 
-ggplot(model_trends, aes(x = data_month_year, y = transfers, group = vehicle, colour = vehicle)) +
-  geom_line(linewidth = 0.8) +
-  labs(
+top_5_plot <- model_trends %>%
+  plot_time_series(
+    x_var = data_month_year,
+    y_var = transfers,
+    group_var = vehicle,
     title = "Transfer Trends - Top 5 Models",
-    x = NULL,
-    y = "Monthly transfers",
-    colour = "Vehicle"
-  ) +
-  scale_y_continuous(labels = comma) +
-  scale_colour_brewer(palette = "Set2") +
-  theme_minimal()
+    subtitle = "Monthly transfers by vehicle model"
+  )
 
-ggsave("outputs/PDFs/04_top_5_trends.pdf", width = 10, height = 6)
+export_plot(top_5_plot, "04_top_5_trends.pdf", width = 11, height = 6)
 
-# Growth vs popularity
-ggplot(model_growth, aes(x = previous_transfers, y = growth)) +
-  geom_point(alpha = 0.5) +
-  labs(
+# 5. Growth vs popularity (Scatter Plot)
+growth_plot <- model_growth %>%
+  plot_scatter(
+    x_var = previous_transfers,
+    y_var = growth,
+    color_var = recent_transfers,
     title = "Growth vs Popularity",
-    subtitle = "Models with growth + activity = opportunity",
-    x = "Previous 12-month transfers",
-    y = "Growth (%)"
-  ) +
-  theme_minimal()
+    subtitle = "Models with high activity + growth = opportunity"
+  )
 
-ggsave("outputs/PDFs/05_growth_vs_popularity.pdf", width = 10, height = 6)
+export_plot(growth_plot, "05_growth_vs_popularity.pdf", width = 10, height = 7)
 
-# Vehicle age distribution
+# 6. Vehicle age distribution (Distribution Plot)
 age_distribution <- transfer_top_makes %>%
   group_by(age_bucket) %>%
   summarise(transfers = sum(TOTAL, na.rm = TRUE), .groups = "drop")
 
-ggplot(age_distribution, aes(x = age_bucket, y = transfers)) +
-  geom_col() +
+age_dist_plot <- age_distribution %>%
+  ggplot(aes(x = age_bucket, y = transfers)) +
+  geom_col(fill = blue_palette$primary, width = 0.7) +
   labs(
     title = "Used-Vehicle Transfers by Age",
+    subtitle = "Distribution across vehicle age buckets",
     x = "Vehicle age",
     y = "Transfers"
   ) +
   scale_y_continuous(labels = comma) +
-  theme_minimal()
+  theme_report(grid_type = "y")
 
-ggsave("outputs/PDFs/06_age_distribution.pdf", width = 10, height = 6)
+export_plot(age_dist_plot, "06_age_distribution.pdf", width = 10, height = 6)
 
-# Age profile by major makes
+# 7. Age profile by major makes (Stacked Bar Chart)
 top_makes_list <- top_makes %>% pull(make_standard)
 
 age_by_make <- transfer_top_makes %>%
@@ -452,9 +450,20 @@ age_by_make <- transfer_top_makes %>%
   mutate(percentage = transfers / sum(transfers) * 100) %>%
   ungroup()
 
-ggplot(age_by_make, aes(x = make_standard, y = percentage, fill = age_bucket)) +
-  geom_col(position = "stack") +
+age_by_make_plot <- age_by_make %>%
+  ggplot(aes(x = reorder(make_standard, percentage), y = percentage, fill = age_bucket)) +
+  geom_col(position = "stack", width = 0.7) +
   coord_flip() +
+  scale_fill_manual(
+    name = "Vehicle Age",
+    values = c(
+      "0-2 years" = blue_palette$primary,
+      "3-6 years" = blue_palette$secondary,
+      "7-9 years" = blue_palette$highlight,
+      "10-12 years" = blue_palette$accent,
+      "13-16 years" = blue_palette$light_bg
+    )
+  ) +
   labs(
     title = "Vehicle Age Distribution by Make",
     subtitle = "Top 15 makes - age composition of transfers",
@@ -462,30 +471,29 @@ ggplot(age_by_make, aes(x = make_standard, y = percentage, fill = age_bucket)) +
     y = "Share of transfers (%)",
     fill = "Vehicle Age"
   ) +
-  scale_fill_brewer(palette = "RdYlBu", direction = -1) +
-  theme_minimal()
+  theme_report(grid_type = "x", legend_pos = "bottom")
 
-ggsave("outputs/PDFs/07_age_by_make.pdf", width = 10, height = 6)
+export_plot(age_by_make_plot, "07_age_by_make.pdf", width = 11, height = 8)
 
-# New vehicle registrations trend
+# 8. New vehicle registrations trend (Time Series)
 new_monthly <- new_top_makes %>%
   group_by(data_month_year) %>%
   summarise(registrations = sum(TOTAL, na.rm = TRUE), .groups = "drop")
 
-ggplot(new_monthly, aes(x = data_month_year, y = registrations)) +
-  geom_line(linewidth = 1) +
-  labs(
+new_reg_plot <- new_monthly %>%
+  plot_time_series(
+    x_var = data_month_year,
+    y_var = registrations,
     title = "Monthly New Vehicle Registrations",
-    subtitle = "Top 95% makes",
-    x = NULL,
-    y = "New registrations"
-  ) +
-  scale_y_continuous(labels = comma) +
-  theme_minimal()
+    subtitle = "Top 95% makes"
+  )
 
-ggsave("outputs/PDFs/08_new_registrations.pdf", width = 10, height = 6)
+export_plot(new_reg_plot, "08_new_registrations.pdf", width = 10, height = 6)
 
-# Summary reports 
+# =========================================================
+# SUMMARY REPORTS 
+# =========================================================
+
 # Market share summary - transfers
 transfer_summary <- transfer_top_makes %>%
   group_by(make_standard) %>%
@@ -516,16 +524,10 @@ print("\nNew Vehicle Summary (Top 20):")
 print(head(new_summary, 20))
 
 # Save key datasets
-write_csv(transfer_summary, "outputs/CSVs/01_transfer_make_summary.csv")
-write_csv(new_summary, "outputs/CSVs/02_new_vehicle_summary.csv")
-write_csv(model_growth, "outputs/CSVs/03_model_growth_analysis.csv")
-write_csv(new_yearly, "outputs/CSVs/04_new_registrations_yearly.csv")
-write_csv(top_models, "outputs/CSVs/05_top_20_models.csv")
+write_csv(transfer_summary, "01_transfer_make_summary.csv")
+write_csv(new_summary, "02_new_vehicle_summary.csv")
+write_csv(model_growth, "03_model_growth_analysis.csv")
+write_csv(new_yearly, "04_new_registrations_yearly.csv")
+write_csv(top_models, "05_top_20_models.csv")
 
-# Export time-series (for XGBoost/forecasting)
-transfer_timeseries <- transfer_final %>%
-  group_by(data_month_year) %>%
-  summarise(total_transfers = sum(TOTAL, na.rm = TRUE), .groups = "drop") %>%
-  arrange(data_month_year)
-
-write_csv(transfer_timeseries, "outputs/CSVs/transfers_cleaned_timeseries.csv")
+print("\n✓ All visualizations complete and saved with consistent blue theme")

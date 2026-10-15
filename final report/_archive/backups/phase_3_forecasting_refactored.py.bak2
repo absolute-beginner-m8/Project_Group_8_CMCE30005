@@ -110,7 +110,7 @@ def main():
     print("=" * 70)
 
     print("\nLoading cleaned time-series data...")
-    df = pd.read_csv('outputs/CSVs/transfers_cleaned_timeseries.csv')
+    df = pd.read_csv('../outputs/CSVs/transfers_cleaned_timeseries.csv')
     df['date'] = pd.to_datetime(df['data_month_year'])
     monthly_series = df.set_index('date')['total_transfers'].sort_index()
 
@@ -131,7 +131,11 @@ def main():
     # ---- ARIMA ----
     try:
         print("\nARIMA")
-        fitted = ARIMA(train_series, order=Config.ARIMA_ORDER).fit()
+        fitted = ARIMA(
+            train_series,
+            order=Config.ARIMA_ORDER,
+            seasonal_order=(1, 0, 0, 12)  
+        ).fit()
         arima_pred = fitted.get_forecast(steps=len(test_series)).predicted_mean
         arima_pred.index = test_series.index
 

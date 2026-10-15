@@ -1,0 +1,327 @@
+"""
+PHASE 3: PREDICTIVE MODELING (6-MONTH FORECAST) - REFACTORED WITH BLUE THEME
+=============================================================================
+
+Compares ARIMA(1,1,1) and XGBoost on a 70/30 train/test split,
+then refits the better model on ALL data and forecasts the next 6 months.
+
+Charts now use the shared professional blue theme (viz_theme.py) to match
+the ggplot2 visualizations elsewhere in the report.
+
+Outputs:
+  outputs/results/phase3_model_comparison.csv
+  outputs/forecasts/phase3_forecast_6m.csv
+  outputs/forecasts/charts/phase3_01_model_comparison.png
+  outputs/forecasts/charts/phase3_02_backtest.png
+  outputs/forecasts/charts/phase3_03_forecast_6m.png
+"""
+
+import warnings
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import matplotlib
+matplotlib.use('Agg')  # save to file, no pop-up window needed
+import matplotlib.pyplot as plt
+
+warnings.filterwarnings('ignore')
+
+from statsmodels.tsa.arima.model import ARIMA
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+import xgboost as xgb
+
+from viz_theme import BLUE, apply_style, style_axes, save_fig as theme_save_fig
+
+
+class Config:
+    OUTPUT_DIR = Path("outputs/forecasts")
+    RESULTS_DIR = Path("outputs/results")
+    CHART_DIR = Path("outputs/forecasts/charts")
+    FORECAST_HORIZON = 6          # months (was 12)
+    TEST_SPLIT = 0.7
+    LAGS = [1, 3, 6, 12]
+    ARIMA_ORDER = (1, 1, 1)
+    ARIMA_SEASONAL = (1, 0, 0, 12)
+    XGB_PARAMS = dict(n_estimators=200, max_depth=5, learning_rate=0.05, random_state=42)
+
+    @classmethod
+    def setup_directories(cls):
+        for directory in [cls.OUTPUT_DIR, cls.RESULTS_DIR, cls.CHART_DIR]:
+            directory.mkdir(parents=True, exist_ok=True)
+
+
+# Professional blue theme - matches visualization_theme.R palette
+COLORS = {
+    'actual': BLUE['primary'],
+    'train': BLUE['accent'],
+    'ARIMA': BLUE['secondary'],
+    'XGBoost': BLUE['highlight'],
+    'ARIMA (1-step)': BLUE['secondary'],
+    'XGBoost (1-step)': BLUE['highlight'],
+    'forecast': BLUE['highlight'],
+}
+
+
+# ============================================================================
+# HELPERS
+# ============================================================================
+
+def build_xy(values, lags):
+    """Lag-feature matrix for XGBoost."""
+    X, y = [], []
+    for i in range(len(values) - max(lags)):
+        X.append([values[i + max(lags) - lag] for lag in lags])
+        y.append(values[i + max(lags)])
+    return np.array(X), np.array(y)
+
+
+def fit_xgb(series):
+    X, y = build_xy(series.values, Config.LAGS)
+    model = xgb.XGBRegressor(**Config.XGB_PARAMS)
+    model.fit(X, y, verbose=False)
+    return model
+
+
+def onestep_xgb_forecast(model, full_series, n_test):
+    """Rolling one-step-ahead: each test month is predicted from ACTUAL past values."""
+    vals = full_series.values
+    start = len(vals) - n_test
+    preds = [model.predict(np.array([[vals[k - lag] for lag in Config.LAGS]]))[0]
+             for k in range(start, len(vals))]
+    return np.array(preds)
+
+
+def recursive_xgb_forecast(model, series, steps):
+    """Forecast `steps` months ahead, feeding each prediction back in as a lag."""
+    history = series.copy()
+    preds = []
+    for _ in range(steps):
+        features = np.array([[history.values[-lag] for lag in Config.LAGS]])
+        pred = model.predict(features)[0]
+        preds.append(pred)
+        next_date = history.index[-1] + pd.DateOffset(months=1)
+        history = pd.concat([history, pd.Series([pred], index=[next_date])])
+    return np.array(preds)
+
+
+def save_fig(fig, name):
+    theme_save_fig(fig, Config.CHART_DIR / name)
+
+
+# ============================================================================
+# MAIN
+# ============================================================================
+
+def main():
+    apply_style()
+    Config.setup_directories()
+
+    print("=" * 70)
+    print("PHASE 3: PREDICTIVE MODELING (CLEAN DATA) - 6 MONTH HORIZON")
+    print("=" * 70)
+
+    print("\nLoading cleaned time-series data...")
+    df = pd.read_csv('../outputs/CSVs/transfers_cleaned_timeseries.csv')
+    df['date'] = pd.to_datetime(df['data_month_year'])
+    monthly_series = df.set_index('date')['total_transfers'].sort_index()
+
+    print(f"Loaded: {len(monthly_series)} observations")
+    print(f"  Date range: {monthly_series.index.min().date()} to {monthly_series.index.max().date()}")
+
+    split_point = int(len(monthly_series) * Config.TEST_SPLIT)
+    train_series = monthly_series[:split_point]
+    test_series = monthly_series[split_point:]
+
+    print("\n" + "=" * 70)
+    print("TRAINING MODELS")
+    print("=" * 70)
+
+    results = {}
+    test_preds = {}   # kept for the backtest chart
+
+    # ---- ARIMA ----
+    try:
+        print("\nARIMA")
+        fitted = ARIMA(
+            train_series,
+            order=Config.ARIMA_ORDER,
+            seasonal_order=Config.ARIMA_SEASONAL
+        ).fit()
+        arima_pred = fitted.get_forecast(steps=len(test_series)).predicted_mean
+        arima_pred.index = test_series.index
+
+        mae = mean_absolute_error(test_series, arima_pred)
+        rmse = np.sqrt(mean_squared_error(test_series, arima_pred))
+        results['ARIMA'] = {'mae': mae, 'rmse': rmse}
+        test_preds['ARIMA'] = arima_pred
+        print(f"  MAE: {mae:.0f} | RMSE: {rmse:.0f}")
+    except Exception as e:
+        print(f"  ARIMA failed: {e}")
+
+    # ---- ARIMA, rolling one-step-ahead (parameters fixed, history updated with actuals) ----
+    try:
+        print("\nARIMA (1-step)")
+        ext = fitted.append(test_series, refit=False)
+        arima1 = ext.fittedvalues.iloc[-len(test_series):]
+        arima1.index = test_series.index
+
+        mae = mean_absolute_error(test_series, arima1)
+        rmse = np.sqrt(mean_squared_error(test_series, arima1))
+        results['ARIMA (1-step)'] = {'mae': mae, 'rmse': rmse}
+        test_preds['ARIMA (1-step)'] = arima1
+        print(f"  MAE: {mae:.0f} | RMSE: {rmse:.0f}")
+    except Exception as e:
+        print(f"  ARIMA (1-step) failed: {e}")
+
+    # ---- XGBoost ----
+    try:
+        print("\nXGBOOST")
+        xgb_model = fit_xgb(train_series)
+        xgb_pred = recursive_xgb_forecast(xgb_model, train_series, len(test_series))
+        xgb_pred = pd.Series(xgb_pred, index=test_series.index)
+
+        mae = mean_absolute_error(test_series, xgb_pred)
+        rmse = np.sqrt(mean_squared_error(test_series, xgb_pred))
+        results['XGBoost'] = {'mae': mae, 'rmse': rmse}
+        test_preds['XGBoost'] = xgb_pred
+        print(f"  MAE: {mae:.0f} | RMSE: {rmse:.0f}")
+    except Exception as e:
+        print(f"  XGBoost failed: {e}")
+
+    # ---- XGBoost, rolling one-step-ahead ----
+    try:
+        print("\nXGBOOST (1-step)")
+        xgb1 = pd.Series(onestep_xgb_forecast(xgb_model, monthly_series, len(test_series)),
+                         index=test_series.index)
+        mae = mean_absolute_error(test_series, xgb1)
+        rmse = np.sqrt(mean_squared_error(test_series, xgb1))
+        results['XGBoost (1-step)'] = {'mae': mae, 'rmse': rmse}
+        test_preds['XGBoost (1-step)'] = xgb1
+        print(f"  MAE: {mae:.0f} | RMSE: {rmse:.0f}")
+    except Exception as e:
+        print(f"  XGBoost (1-step) failed: {e}")
+
+    if not results:
+        raise RuntimeError("Both models failed - nothing to forecast with.")
+
+    # ---- Comparison ----
+    print("\n" + "=" * 70)
+    print("MODEL COMPARISON")
+    print("=" * 70)
+
+    comparison_df = pd.DataFrame(
+        [{'Model': n, 'MAE': round(d['mae'], 0), 'RMSE': round(d['rmse'], 0)} for n, d in results.items()]
+    ).sort_values('MAE')
+    print("\n" + comparison_df.to_string(index=False))
+    comparison_df.to_csv(Config.RESULTS_DIR / 'phase3_model_comparison.csv', index=False)
+
+    # Future forecast is multi-step, so pick the winner among multi-step models only
+    multi = comparison_df[~comparison_df['Model'].str.contains('1-step')]
+    best_model_name = multi.iloc[0]['Model']
+
+    # ---- Final forecast: refit best model on ALL data ----
+    print("\n" + "=" * 70)
+    print(f"FUTURE FORECAST ({Config.FORECAST_HORIZON} months) - {best_model_name}")
+    print("=" * 70)
+
+    if best_model_name == 'ARIMA':
+        full_fit = ARIMA(monthly_series, order=Config.ARIMA_ORDER,
+                         seasonal_order=Config.ARIMA_SEASONAL).fit()
+        fc = full_fit.get_forecast(steps=Config.FORECAST_HORIZON)
+        forecast = fc.predicted_mean.values
+        conf = fc.conf_int()
+        conf_lower = conf.iloc[:, 0].values
+        conf_upper = conf.iloc[:, 1].values
+    else:
+        full_model = fit_xgb(monthly_series)
+        forecast = recursive_xgb_forecast(full_model, monthly_series, Config.FORECAST_HORIZON)
+        # Not a statistical interval - simple +/-10% band
+        conf_lower = forecast * 0.9
+        conf_upper = forecast * 1.1
+
+    future_dates = pd.date_range(
+        start=monthly_series.index[-1] + pd.DateOffset(months=1),
+        periods=Config.FORECAST_HORIZON, freq='MS'
+    )
+
+    forecast_df = pd.DataFrame({
+        'date': future_dates,
+        'forecast': forecast,
+        'ci_lower': conf_lower,
+        'ci_upper': conf_upper,
+    })
+    print("\n" + forecast_df.to_string(index=False))
+    forecast_df.to_csv(Config.OUTPUT_DIR / 'phase3_forecast_6m.csv', index=False)
+
+    # ========================================================================
+    # CHARTS - PROFESSIONAL BLUE THEME
+    # ========================================================================
+
+    print("\n" + "=" * 70)
+    print("CHARTS")
+    print("=" * 70)
+
+    # 1. Model comparison (lower = better)
+    fig, ax = plt.subplots(figsize=(8, 5))
+    x = np.arange(len(comparison_df))
+    w = 0.38
+    b1 = ax.bar(x - w / 2, comparison_df['MAE'], w, label='MAE', color=BLUE['primary'])
+    b2 = ax.bar(x + w / 2, comparison_df['RMSE'], w, label='RMSE', color=BLUE['secondary'])
+    for bars in (b1, b2):
+        for b in bars:
+            ax.text(b.get_x() + b.get_width() / 2, b.get_height(), f'{b.get_height():,.0f}',
+                    ha='center', va='bottom', fontsize=9, color=BLUE['text'])
+    ax.set_xticks(x)
+    ax.set_xticklabels(comparison_df['Model'])
+    ax.set_title('Model Comparison on Test Set (lower is better)', loc='left')
+    ax.set_ylabel('Error (transfers per month)')
+    ax.legend()
+    style_axes(ax)
+    save_fig(fig, 'phase3_01_model_comparison.png')
+
+    # 2. Backtest: predictions vs actual on the test period
+    fig, ax = plt.subplots(figsize=(11, 5))
+    ax.plot(train_series.index, train_series.values, color=COLORS['train'], label='Train (actual)')
+    ax.plot(test_series.index, test_series.values, color=COLORS['actual'], linewidth=2, label='Test (actual)')
+    for name, pred in test_preds.items():
+        mae = results[name]['mae']
+        one = '1-step' in name
+        ax.plot(pred.index, pred.values, color=COLORS[name], linestyle=':' if one else '--',
+                linewidth=2, marker='o' if one else None, markersize=4,
+                label=f'{name} (MAE {mae:,.0f})')
+    ax.axvline(test_series.index[0], color=BLUE['border'], linestyle=':', linewidth=1)
+    ax.set_title('Backtest: Model Predictions vs Actual Transfers', loc='left')
+    ax.set_ylabel('Total transfers per month')
+    ax.legend()
+    style_axes(ax)
+    save_fig(fig, 'phase3_02_backtest.png')
+
+    # 3. Final 6-month forecast
+    fig, ax = plt.subplots(figsize=(11, 5))
+    ax.plot(monthly_series.index, monthly_series.values, color=COLORS['actual'], label='Actual')
+    # connect last actual point to first forecast point
+    ax.plot([monthly_series.index[-1], future_dates[0]], [monthly_series.values[-1], forecast[0]],
+            color=COLORS['forecast'], linestyle='--')
+    ax.plot(future_dates, forecast, color=COLORS['forecast'], linestyle='--', marker='o',
+            label=f'{Config.FORECAST_HORIZON}-month forecast ({best_model_name})')
+    band_label = '95% interval' if best_model_name == 'ARIMA' else '+/-10% band'
+    ax.fill_between(future_dates, conf_lower, conf_upper, color=COLORS['forecast'], alpha=0.2, label=band_label)
+    ax.axvline(monthly_series.index[-1], color=BLUE['border'], linestyle=':', linewidth=1)
+    ax.set_title(f'{Config.FORECAST_HORIZON}-Month Transfer Forecast ({best_model_name})', loc='left')
+    ax.set_ylabel('Total transfers per month')
+    ax.legend()
+    style_axes(ax)
+    save_fig(fig, 'phase3_03_forecast_6m.png')
+
+    print("\n" + "=" * 70)
+    print("PHASE 3 COMPLETE")
+    print("=" * 70)
+    print(f"\nUsing CLEAN data (standardized makes)")
+    print(f"Best model: {best_model_name}")
+    print(f"Forecast horizon: {Config.FORECAST_HORIZON} months")
+    print(f"Files saved")
+
+
+if __name__ == "__main__":
+    main()

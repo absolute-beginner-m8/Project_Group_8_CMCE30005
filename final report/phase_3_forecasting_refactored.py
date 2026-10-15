@@ -42,6 +42,7 @@ class Config:
     TEST_SPLIT = 0.7
     LAGS = [1, 3, 6, 12]
     ARIMA_ORDER = (1, 1, 1)
+    ARIMA_SEASONAL = (1, 0, 0, 12)
     XGB_PARAMS = dict(n_estimators=200, max_depth=5, learning_rate=0.05, random_state=42)
 
     @classmethod
@@ -56,6 +57,8 @@ COLORS = {
     'train': BLUE['accent'],
     'ARIMA': BLUE['secondary'],
     'XGBoost': BLUE['highlight'],
+    'ARIMA (1-step)': BLUE['secondary'],
+    'XGBoost (1-step)': BLUE['highlight'],
     'forecast': BLUE['highlight'],
 }
 
@@ -78,6 +81,15 @@ def fit_xgb(series):
     model = xgb.XGBRegressor(**Config.XGB_PARAMS)
     model.fit(X, y, verbose=False)
     return model
+
+
+def onestep_xgb_forecast(model, full_series, n_test):
+    """Rolling one-step-ahead: each test month is predicted from ACTUAL past values."""
+    vals = full_series.values
+    start = len(vals) - n_test
+    preds = [model.predict(np.array([[vals[k - lag] for lag in Config.LAGS]]))[0]
+             for k in range(start, len(vals))]
+    return np.array(preds)
 
 
 def recursive_xgb_forecast(model, series, steps):
@@ -131,7 +143,11 @@ def main():
     # ---- ARIMA ----
     try:
         print("\nARIMA")
-        fitted = ARIMA(train_series, order=Config.ARIMA_ORDER).fit()
+        fitted = ARIMA(
+            train_series,
+            order=Config.ARIMA_ORDER,
+            seasonal_order=Config.ARIMA_SEASONAL
+        ).fit()
         arima_pred = fitted.get_forecast(steps=len(test_series)).predicted_mean
         arima_pred.index = test_series.index
 
@@ -142,6 +158,21 @@ def main():
         print(f"  MAE: {mae:.0f} | RMSE: {rmse:.0f}")
     except Exception as e:
         print(f"  ARIMA failed: {e}")
+
+    # ---- ARIMA, rolling one-step-ahead (parameters fixed, history updated with actuals) ----
+    try:
+        print("\nARIMA (1-step)")
+        ext = fitted.append(test_series, refit=False)
+        arima1 = ext.fittedvalues.iloc[-len(test_series):]
+        arima1.index = test_series.index
+
+        mae = mean_absolute_error(test_series, arima1)
+        rmse = np.sqrt(mean_squared_error(test_series, arima1))
+        results['ARIMA (1-step)'] = {'mae': mae, 'rmse': rmse}
+        test_preds['ARIMA (1-step)'] = arima1
+        print(f"  MAE: {mae:.0f} | RMSE: {rmse:.0f}")
+    except Exception as e:
+        print(f"  ARIMA (1-step) failed: {e}")
 
     # ---- XGBoost ----
     try:
@@ -158,6 +189,19 @@ def main():
     except Exception as e:
         print(f"  XGBoost failed: {e}")
 
+    # ---- XGBoost, rolling one-step-ahead ----
+    try:
+        print("\nXGBOOST (1-step)")
+        xgb1 = pd.Series(onestep_xgb_forecast(xgb_model, monthly_series, len(test_series)),
+                         index=test_series.index)
+        mae = mean_absolute_error(test_series, xgb1)
+        rmse = np.sqrt(mean_squared_error(test_series, xgb1))
+        results['XGBoost (1-step)'] = {'mae': mae, 'rmse': rmse}
+        test_preds['XGBoost (1-step)'] = xgb1
+        print(f"  MAE: {mae:.0f} | RMSE: {rmse:.0f}")
+    except Exception as e:
+        print(f"  XGBoost (1-step) failed: {e}")
+
     if not results:
         raise RuntimeError("Both models failed - nothing to forecast with.")
 
@@ -172,7 +216,9 @@ def main():
     print("\n" + comparison_df.to_string(index=False))
     comparison_df.to_csv(Config.RESULTS_DIR / 'phase3_model_comparison.csv', index=False)
 
-    best_model_name = comparison_df.iloc[0]['Model']
+    # Future forecast is multi-step, so pick the winner among multi-step models only
+    multi = comparison_df[~comparison_df['Model'].str.contains('1-step')]
+    best_model_name = multi.iloc[0]['Model']
 
     # ---- Final forecast: refit best model on ALL data ----
     print("\n" + "=" * 70)
@@ -180,7 +226,8 @@ def main():
     print("=" * 70)
 
     if best_model_name == 'ARIMA':
-        full_fit = ARIMA(monthly_series, order=Config.ARIMA_ORDER).fit()
+        full_fit = ARIMA(monthly_series, order=Config.ARIMA_ORDER,
+                         seasonal_order=Config.ARIMA_SEASONAL).fit()
         fc = full_fit.get_forecast(steps=Config.FORECAST_HORIZON)
         forecast = fc.predicted_mean.values
         conf = fc.conf_int()
@@ -235,12 +282,16 @@ def main():
 
     # 2. Backtest: predictions vs actual on the test period
     fig, ax = plt.subplots(figsize=(11, 5))
-    ax.plot(train_series.index, train_series.values, color=COLORS['train'], label='Train (actual)')
-    ax.plot(test_series.index, test_series.values, color=COLORS['actual'], linewidth=2, label='Test (actual)')
-    for name, pred in test_preds.items():
-        mae = results[name]['mae']
-        ax.plot(pred.index, pred.values, color=COLORS[name], linestyle='--', linewidth=2,
-                label=f'{name} (MAE {mae:,.0f})')
+    # Keep the chart readable: last 12 months of training for context,
+    # and only the two main (multi-step) models. 1-step results stay in the table.
+    recent_train = train_series.iloc[-12:]
+    ax.plot(recent_train.index, recent_train.values, color=COLORS['train'], linewidth=1.5, label='Train (actual)')
+    ax.plot(test_series.index, test_series.values, color=COLORS['actual'], linewidth=2.5, label='Test (actual)')
+    for name in ('ARIMA', 'XGBoost'):
+        if name in test_preds:
+            pred = test_preds[name]
+            ax.plot(pred.index, pred.values, color=COLORS[name], linestyle='--', linewidth=2,
+                    label=f"{name} (MAE {results[name]['mae']:,.0f})")
     ax.axvline(test_series.index[0], color=BLUE['border'], linestyle=':', linewidth=1)
     ax.set_title('Backtest: Model Predictions vs Actual Transfers', loc='left')
     ax.set_ylabel('Total transfers per month')
